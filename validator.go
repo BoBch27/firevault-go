@@ -24,6 +24,19 @@ func newValidator() *validator {
 	return validator
 }
 
+func (v *validator) registerValidation(name string, validation ValidationFn) error {
+	if len(name) == 0 {
+		return errors.New("firevault: validation function Name cannot be empty")
+	}
+
+	if validation == nil {
+		return fmt.Errorf("firevault: validation function %s cannot be empty", name)
+	}
+
+	v.validations[name] = validation
+	return nil
+}
+
 func (v *validator) validate(data interface{}) (map[string]interface{}, error) {
 	rs := reflectedStruct{reflect.TypeOf(data), reflect.ValueOf(data)}
 
