@@ -11,7 +11,7 @@ type validator struct {
 	validations map[string]ValidationFn
 }
 
-type ValidationFn func(string, reflect.Value) error
+type ValidationFn func(string, reflect.Value, string) error
 
 type reflectedStruct struct {
 	types  reflect.Type
@@ -87,8 +87,16 @@ func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, 
 				continue
 			}
 
+			// get param value if present
+			param := ""
+			params := strings.Split(rule, "=")
+			if len(params) > 1 {
+				param = params[1]
+				rule = params[0]
+			}
+
 			if validation, ok := v.validations[rule]; ok {
-				err := validation(fieldType.Name, fieldValue)
+				err := validation(fieldType.Name, fieldValue, param)
 				if err != nil {
 					return nil, err
 				}
