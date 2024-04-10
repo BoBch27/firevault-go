@@ -21,6 +21,8 @@ type reflectedStruct struct {
 func newValidator() *validator {
 	validator := &validator{make(map[string]ValidationFn)}
 
+	validator.registerValidation("required", validateRequired)
+
 	return validator
 }
 
@@ -80,6 +82,11 @@ func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, 
 
 		// validate field based on rules
 		for _, rule := range rules {
+			// skip rules (apart from "required") if value is zero
+			if rule != "required" && fieldValue.IsZero() {
+				continue
+			}
+
 			if validation, ok := v.validations[rule]; ok {
 				err := validation(fieldType.Name, fieldValue)
 				if err != nil {
