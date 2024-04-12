@@ -13,9 +13,9 @@ type validator struct {
 	transformations map[string]TransformationFn
 }
 
-type ValidationFn func(string, reflect.Value, string) error
+type ValidationFn func(reflect.Value, string) bool
 
-type TransformationFn func(string, reflect.Value) (interface{}, error)
+type TransformationFn func(reflect.Value) (interface{}, error)
 
 type reflectedStruct struct {
 	types  reflect.Type
@@ -124,6 +124,17 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				continue
 			}
 
+			fe := &fieldError{
+				code:        "",
+				tag:         rule,
+				field:       fieldName,
+				structField: fieldType.Name,
+				value:       fieldValue.Interface(),
+				param:       "",
+				kind:        fieldValue.Kind(),
+				typ:         fieldValue.Type(),
+			}
+
 			if strings.HasPrefix(rule, "name=") {
 				fieldName = strings.TrimPrefix(rule, "name=")
 			} else if strings.HasPrefix(rule, "transform=") {
@@ -135,9 +146,10 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				transName := strings.TrimPrefix(rule, "transform=")
 
 				if transformation, ok := v.transformations[transName]; ok {
-					newValue, err := transformation(fieldType.Name, fieldValue)
+					newValue, err := transformation(fieldValue)
 					if err != nil {
-						return nil, err
+						fe.code = "failed-transformation"
+						return nil, fe
 					}
 
 					// check if rule returned a new value and assign it
@@ -146,7 +158,8 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 						rs.values.Field(i).Set(fieldValue)
 					}
 				} else {
-					return nil, fmt.Errorf("firevault: unknown transformation rule: %s", rule)
+					fe.code = "unknown-transformation"
+					return nil, fe
 				}
 			} else {
 				// skip rules (apart from "required") if value is zero
@@ -163,12 +176,16 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				}
 
 				if validation, ok := v.validations[rule]; ok {
-					err := validation(fieldType.Name, fieldValue, param)
-					if err != nil {
-						return nil, err
+					ok := validation(fieldValue, param)
+					if !ok {
+						fe.code = "failed-validation"
+						fe.param = param
+						return nil, fe
 					}
 				} else {
-					return nil, fmt.Errorf("firevault: unknown validation rule: %s", rule)
+					fe.code = "unknown-validation"
+					fe.param = param
+					return nil, fe
 				}
 			}
 		}
