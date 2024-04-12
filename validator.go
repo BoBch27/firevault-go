@@ -26,7 +26,11 @@ type ValidationOpts struct {
 func newValidator() *validator {
 	validator := &validator{make(map[string]ValidationFn)}
 
-	validator.registerValidation("required", validateRequired)
+	// Register predefined validators
+	for k, v := range builtInValidators {
+		// no need to error check here, built in validations are always valid
+		_ = validator.registerValidation(k, v)
+	}
 
 	return validator
 }

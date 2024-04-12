@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+var builtInValidators = map[string]ValidationFn{
+	"required": validateRequired,
+}
+
 // validates if field is zero and returns error if so
 func validateRequired(fieldName string, fieldValue reflect.Value, _ string) error {
 	if fieldValue.IsZero() {
