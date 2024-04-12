@@ -19,6 +19,10 @@ type reflectedStruct struct {
 	values reflect.Value
 }
 
+type ValidationOpts struct {
+	SkipRequired bool
+}
+
 func newValidator() *validator {
 	validator := &validator{make(map[string]ValidationFn)}
 
@@ -40,7 +44,7 @@ func (v *validator) registerValidation(name string, validation ValidationFn) err
 	return nil
 }
 
-func (v *validator) validate(data interface{}) (map[string]interface{}, error) {
+func (v *validator) validate(data interface{}, opts ValidationOpts) (map[string]interface{}, error) {
 	rs := reflectedStruct{reflect.TypeOf(data), reflect.ValueOf(data)}
 
 	if rs.values.Kind() != reflect.Pointer && rs.values.Kind() != reflect.Ptr {
@@ -54,11 +58,11 @@ func (v *validator) validate(data interface{}) (map[string]interface{}, error) {
 		return nil, errors.New("firevault: data must be a pointer to a struct")
 	}
 
-	dataMap, err := v.validateFields(rs)
+	dataMap, err := v.validateFields(rs, opts)
 	return dataMap, err
 }
 
-func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, error) {
+func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map[string]interface{}, error) {
 	// map which will hold all fields to pass to firestore
 	dataMap := make(map[string]interface{})
 
@@ -95,6 +99,11 @@ func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, 
 
 		// validate field based on rules
 		for _, rule := range rules {
+			// skip "required" rule depending on the passed in options
+			if opts.SkipRequired && rule == "required" {
+				continue
+			}
+
 			// skip rules (apart from "required") if value is zero
 			if rule != "required" && fieldValue.IsZero() {
 				continue
@@ -120,7 +129,7 @@ func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, 
 
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
-			newMap, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue})
+			newMap, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts)
 			if err != nil {
 				return nil, err
 			}
