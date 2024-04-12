@@ -79,6 +79,10 @@ func (c *collection[T]) FindById(id string) (T, error) {
 	return doc, err
 }
 
+func (c *collection[T]) Find() *query[T] {
+	return newQuery[T](c.connection, c.ref.Query)
+}
+
 func (c *collection[T]) UpdateById(id string, data T, opts ...ValidationOpts) error {
 	options := ValidationOpts{true}
 
