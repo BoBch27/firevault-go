@@ -23,6 +23,30 @@ func (q *query[T]) Where(path string, operator string, value interface{}) *query
 	return newQuery[T](q.connection, q.query.Where(path, operator, value))
 }
 
+func (q *query[T]) OrderBy(path string, direction firestore.Direction) *query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, direction))
+}
+
+func (q *query[T]) Limit(num int) *query[T] {
+	return newQuery[T](q.connection, q.query.Limit(num))
+}
+
+func (q *query[T]) LimitToLast(num int) *query[T] {
+	return newQuery[T](q.connection, q.query.LimitToLast(num))
+}
+
+func (q *query[T]) StartAfter(path string, field interface{}) *query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).StartAfter(field))
+}
+
+func (q *query[T]) EndBefore(path string, field interface{}) *query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).EndBefore(field))
+}
+
+func (q *query[T]) Offset(num int) *query[T] {
+	return newQuery[T](q.connection, q.query.Offset(num))
+}
+
 func (q *query[T]) Fetch() ([]Document[T], error) {
 	var doc T
 	var docs []Document[T]
