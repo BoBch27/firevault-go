@@ -9,10 +9,13 @@ import (
 )
 
 type validator struct {
-	validations map[string]ValidationFn
+	validations     map[string]ValidationFn
+	transformations map[string]TransformationFn
 }
 
 type ValidationFn func(string, reflect.Value, string) error
+
+type TransformationFn func(string, reflect.Value) (interface{}, error)
 
 type reflectedStruct struct {
 	types  reflect.Type
@@ -24,7 +27,7 @@ type ValidationOpts struct {
 }
 
 func newValidator() *validator {
-	validator := &validator{make(map[string]ValidationFn)}
+	validator := &validator{make(map[string]ValidationFn), make(map[string]TransformationFn)}
 
 	// Register predefined validators
 	for k, v := range builtInValidators {
@@ -45,6 +48,19 @@ func (v *validator) registerValidation(name string, validation ValidationFn) err
 	}
 
 	v.validations[name] = validation
+	return nil
+}
+
+func (v *validator) registerTransformation(name string, transformation TransformationFn) error {
+	if len(name) == 0 {
+		return errors.New("firevault: transformation function Name cannot be empty")
+	}
+
+	if transformation == nil {
+		return fmt.Errorf("firevault: transformation function %s cannot be empty", name)
+	}
+
+	v.transformations[name] = transformation
 	return nil
 }
 
@@ -110,6 +126,28 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 
 			if strings.HasPrefix(rule, "name=") {
 				fieldName = strings.TrimPrefix(rule, "name=")
+			} else if strings.HasPrefix(rule, "transform=") {
+				// skip rule if value is zero
+				if fieldValue.IsZero() {
+					continue
+				}
+
+				transName := strings.TrimPrefix(rule, "transform=")
+
+				if transformation, ok := v.transformations[transName]; ok {
+					newValue, err := transformation(fieldType.Name, fieldValue)
+					if err != nil {
+						return nil, err
+					}
+
+					// check if rule returned a new value and assign it
+					if newValue != nil {
+						fieldValue = reflect.ValueOf(newValue)
+						rs.values.Field(i).Set(fieldValue)
+					}
+				} else {
+					return nil, fmt.Errorf("firevault: unknown transformation rule: %s", rule)
+				}
 			} else {
 				// skip rules (apart from "required") if value is zero
 				if rule != "required" && fieldValue.IsZero() {
