@@ -1,7 +1,10 @@
 package firevault
 
 import (
+	"errors"
+
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"google.golang.org/api/iterator"
 )
 
@@ -71,4 +74,21 @@ func (q *query[T]) Fetch() ([]Document[T], error) {
 	}
 
 	return docs, nil
+}
+
+func (q *query[T]) Count() (int64, error) {
+	results, err := q.query.NewAggregationQuery().WithCount("all").Get(q.connection.ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	count, ok := results["all"]
+	if !ok {
+		return 0, errors.New("firestore: couldn't get alias for COUNT from results")
+	}
+
+	countValue := count.(*firestorepb.Value)
+	countInt := countValue.GetIntegerValue()
+
+	return countInt, nil
 }
