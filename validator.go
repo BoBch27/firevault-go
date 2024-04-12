@@ -108,7 +108,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 
 		// skip validation if value is zero and omitempty tag is present
 		if omitEmpty {
-			if fieldValue.IsZero() {
+			if !hasValue(fieldValue) {
 				continue
 			} else {
 				// remove omitempty from rules, so no validation is attempted
@@ -139,7 +139,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				fieldName = strings.TrimPrefix(rule, "name=")
 			} else if strings.HasPrefix(rule, "transform=") {
 				// skip rule if value is zero
-				if fieldValue.IsZero() {
+				if !hasValue(fieldValue) {
 					continue
 				}
 
@@ -163,7 +163,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				}
 			} else {
 				// skip rules (apart from "required") if value is zero
-				if rule != "required" && fieldValue.IsZero() {
+				if rule != "required" && !hasValue(fieldValue) {
 					continue
 				}
 

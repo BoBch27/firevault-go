@@ -14,9 +14,19 @@ var builtInValidators = map[string]ValidationFn{
 	"min":      validateMin,
 }
 
+// validates if field's value is not the default static value
+func hasValue(fieldValue reflect.Value) bool {
+	switch fieldValue.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
+		return !fieldValue.IsNil()
+	default:
+		return fieldValue.IsValid() && !fieldValue.IsZero()
+	}
+}
+
 // validates if field is zero
 func validateRequired(fieldValue reflect.Value, _ string) bool {
-	return !fieldValue.IsZero()
+	return hasValue(fieldValue)
 }
 
 // validates if field is a valid email address
