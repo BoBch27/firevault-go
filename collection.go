@@ -9,6 +9,11 @@ type collection[T interface{}] struct {
 	ref        *firestore.CollectionRef
 }
 
+type CreationOptions struct {
+	ValidationOpts
+	Id string
+}
+
 func NewCollection[T interface{}](connection *connection, name string) *collection[T] {
 	return &collection[T]{
 		connection,
@@ -27,24 +32,35 @@ func (c *collection[T]) Validate(data T, opts ...ValidationOpts) error {
 	return err
 }
 
-func (c *collection[T]) Create(data T, opts ...ValidationOpts) (string, error) {
-	options := ValidationOpts{false}
+func (c *collection[T]) Create(data T, opts ...CreationOptions) (string, error) {
+	var id string
+	valOptions := ValidationOpts{false}
 
 	if len(opts) > 0 {
-		options = opts[0]
+		id = opts[0].Id
+		valOptions = ValidationOpts{opts[0].SkipRequired}
 	}
 
-	dataMap, err := c.connection.validator.validate(data, options)
+	dataMap, err := c.connection.validator.validate(data, valOptions)
 	if err != nil {
 		return "", err
 	}
 
-	docRef, _, err := c.ref.Add(c.connection.ctx, dataMap)
-	if err != nil {
-		return "", err
+	if id == "" {
+		docRef, _, err := c.ref.Add(c.connection.ctx, dataMap)
+		if err != nil {
+			return "", err
+		}
+
+		id = docRef.ID
+	} else {
+		_, err = c.ref.Doc(id).Set(c.connection.ctx, dataMap)
+		if err != nil {
+			return "", err
+		}
 	}
 
-	return docRef.ID, nil
+	return id, nil
 }
 
 func (c *collection[T]) FindById(id string) (T, error) {
