@@ -104,26 +104,30 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				continue
 			}
 
-			// skip rules (apart from "required") if value is zero
-			if rule != "required" && fieldValue.IsZero() {
-				continue
-			}
-
-			// get param value if present
-			param := ""
-			params := strings.Split(rule, "=")
-			if len(params) > 1 {
-				param = params[1]
-				rule = params[0]
-			}
-
-			if validation, ok := v.validations[rule]; ok {
-				err := validation(fieldType.Name, fieldValue, param)
-				if err != nil {
-					return nil, err
-				}
+			if strings.HasPrefix(rule, "name=") {
+				fieldName = strings.TrimPrefix(rule, "name=")
 			} else {
-				return nil, fmt.Errorf("firevault: unknown validation rule: %s", rule)
+				// skip rules (apart from "required") if value is zero
+				if rule != "required" && fieldValue.IsZero() {
+					continue
+				}
+
+				// get param value if present
+				param := ""
+				params := strings.Split(rule, "=")
+				if len(params) > 1 {
+					param = params[1]
+					rule = params[0]
+				}
+
+				if validation, ok := v.validations[rule]; ok {
+					err := validation(fieldType.Name, fieldValue, param)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					return nil, fmt.Errorf("firevault: unknown validation rule: %s", rule)
+				}
 			}
 		}
 
