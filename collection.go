@@ -16,13 +16,25 @@ func NewCollection[T interface{}](connection *connection, name string) *collecti
 	}
 }
 
-func (c *collection[T]) Validate(data T) error {
-	_, err := c.connection.validator.validate(data, ValidationOpts{SkipRequired: true})
+func (c *collection[T]) Validate(data T, opts ...ValidationOpts) error {
+	options := ValidationOpts{true}
+
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	_, err := c.connection.validator.validate(data, options)
 	return err
 }
 
-func (c *collection[T]) Create(data T) (string, error) {
-	dataMap, err := c.connection.validator.validate(data, ValidationOpts{SkipRequired: false})
+func (c *collection[T]) Create(data T, opts ...ValidationOpts) (string, error) {
+	options := ValidationOpts{false}
+
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	dataMap, err := c.connection.validator.validate(data, options)
 	if err != nil {
 		return "", err
 	}
@@ -51,8 +63,14 @@ func (c *collection[T]) FindById(id string) (T, error) {
 	return doc, err
 }
 
-func (c *collection[T]) UpdateById(id string, data T) error {
-	dataMap, err := c.connection.validator.validate(data, ValidationOpts{SkipRequired: true})
+func (c *collection[T]) UpdateById(id string, data T, opts ...ValidationOpts) error {
+	options := ValidationOpts{true}
+
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	dataMap, err := c.connection.validator.validate(data, options)
 	if err != nil {
 		return err
 	}
