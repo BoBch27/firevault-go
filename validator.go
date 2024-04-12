@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -79,6 +80,18 @@ func (v *validator) validateFields(rs reflectedStruct) (map[string]interface{}, 
 		}
 
 		rules := v.parseTag(tag)
+		omitEmpty := slices.Contains(rules, "omitempty")
+
+		// skip validation if value is zero and omitempty tag is present
+		if omitEmpty {
+			if fieldValue.IsZero() {
+				continue
+			} else {
+				// remove omitempty from rules, so no validation is attempted
+				index := slices.Index(rules, "omitempty")
+				rules = slices.Delete(rules, index, index+1)
+			}
+		}
 
 		// validate field based on rules
 		for _, rule := range rules {
