@@ -93,11 +93,6 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 		fieldType := rs.types.Field(i)
 		fieldName := fieldType.Name
 
-		// get pointer value
-		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {
-			fieldValue = fieldValue.Elem()
-		}
-
 		tag := fieldType.Tag.Get("firevault")
 
 		if tag == "" || tag == "-" {
@@ -125,6 +120,11 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 
 			// remove omitemptyupdate from rules, so no validation is attempted
 			rules = delSliceItem(rules, "omitemptyupdate")
+		}
+
+		// get pointer value
+		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {
+			fieldValue = fieldValue.Elem()
 		}
 
 		// validate field based on rules
