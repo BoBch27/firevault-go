@@ -130,9 +130,16 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 		}
 
 		// validate field based on rules
-		for _, rule := range rules {
+		for ruleIndex, rule := range rules {
+
+			// use first tag rule as new field name, rather than having a "name=" prefix
+			if ruleIndex == 0 && rule != "" {
+				fieldName = rule
+				continue
+			}
+
 			// skip "required" rule depending on the passed in options
-			if opts.skipRequired && rule == "required" {
+			if rule == "required" && opts.skipRequired {
 				continue
 			}
 
@@ -147,9 +154,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 				typ:         fieldValue.Type(),
 			}
 
-			if strings.HasPrefix(rule, "name=") {
-				fieldName = strings.TrimPrefix(rule, "name=")
-			} else if strings.HasPrefix(rule, "transform=") {
+			if strings.HasPrefix(rule, "transform=") {
 				// skip rule if value is zero
 				if !hasValue(fieldValue) {
 					continue
