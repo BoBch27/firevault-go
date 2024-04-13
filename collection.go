@@ -25,7 +25,7 @@ func NewCollection[T interface{}](connection *connection, name string) *collecti
 	}
 }
 
-func (c *collection[T]) Validate(data T, opts ...ValidationOptions) error {
+func (c *collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
@@ -36,7 +36,7 @@ func (c *collection[T]) Validate(data T, opts ...ValidationOptions) error {
 	return err
 }
 
-func (c *collection[T]) Create(data T, opts ...CreationOptions) (string, error) {
+func (c *collection[T]) Create(data *T, opts ...CreationOptions) (string, error) {
 	var id string
 	valOptions := validationOpts{false, false}
 
@@ -87,7 +87,7 @@ func (c *collection[T]) Find() *query[T] {
 	return newQuery[T](c.connection, c.ref.Query)
 }
 
-func (c *collection[T]) UpdateById(id string, data T, opts ...ValidationOptions) error {
+func (c *collection[T]) UpdateById(id string, data *T, opts ...ValidationOptions) error {
 	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
