@@ -26,6 +26,7 @@ import (
 	"log"
 
 	firebase "firebase.google.com/go"
+	"github.com/bobch27/firevault-go"
 )
 
 ctx := context.Background()
@@ -49,6 +50,7 @@ import (
 	"log"
 
 	"cloud.google.com/go/firestore"
+	"github.com/bobch27/firevault-go"
 )
 
 // Sets your Google Cloud Platform project ID.
@@ -180,7 +182,10 @@ Collections
 To create a collection instance, call the `NewCollection` method, using the struct type parameter, and passing in the `connection` instance, as well as a collection **name**.
 
 ```go
-collection := firevault.NewCollection[User](connection, "users")
+collection, err := firevault.NewCollection[User](connection, "users")
+if err != nil {
+	fmt.Println(err)
+}
 ```
 
 Methods
