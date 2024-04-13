@@ -1,6 +1,8 @@
 package firevault
 
 import (
+	"errors"
+
 	"cloud.google.com/go/firestore"
 )
 
@@ -20,11 +22,17 @@ type CreationOptions struct {
 }
 
 // Create a new Collection instance
-func NewCollection[T interface{}](connection *Connection, name string) *Collection[T] {
-	return &Collection[T]{
+func NewCollection[T interface{}](connection *Connection, name string) (*Collection[T], error) {
+	if name == "" {
+		return nil, errors.New("firevault: collection name cannot be empty")
+	}
+
+	collection := &Collection[T]{
 		connection,
 		connection.client.Collection(name),
 	}
+
+	return collection, nil
 }
 
 // Validate provided data
