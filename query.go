@@ -8,8 +8,9 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type query[T interface{}] struct {
-	connection *connection
+// A Firevault Query represents a Firestore Query
+type Query[T interface{}] struct {
+	connection *Connection
 	query      *firestore.Query
 }
 
@@ -18,39 +19,39 @@ type Document[T interface{}] struct {
 	Data T
 }
 
-func newQuery[T interface{}](connection *connection, q firestore.Query) *query[T] {
-	return &query[T]{connection, &q}
+func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T] {
+	return &Query[T]{connection, &q}
 }
 
-func (q *query[T]) Where(path string, operator string, value interface{}) *query[T] {
+func (q *Query[T]) Where(path string, operator string, value interface{}) *Query[T] {
 	return newQuery[T](q.connection, q.query.Where(path, operator, value))
 }
 
-func (q *query[T]) OrderBy(path string, direction firestore.Direction) *query[T] {
+func (q *Query[T]) OrderBy(path string, direction firestore.Direction) *Query[T] {
 	return newQuery[T](q.connection, q.query.OrderBy(path, direction))
 }
 
-func (q *query[T]) Limit(num int) *query[T] {
+func (q *Query[T]) Limit(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.Limit(num))
 }
 
-func (q *query[T]) LimitToLast(num int) *query[T] {
+func (q *Query[T]) LimitToLast(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.LimitToLast(num))
 }
 
-func (q *query[T]) StartAfter(path string, field interface{}) *query[T] {
+func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
 	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).StartAfter(field))
 }
 
-func (q *query[T]) EndBefore(path string, field interface{}) *query[T] {
+func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
 	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).EndBefore(field))
 }
 
-func (q *query[T]) Offset(num int) *query[T] {
+func (q *Query[T]) Offset(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.Offset(num))
 }
 
-func (q *query[T]) Fetch() ([]Document[T], error) {
+func (q *Query[T]) Fetch() ([]Document[T], error) {
 	var doc T
 	var docs []Document[T]
 
@@ -76,7 +77,7 @@ func (q *query[T]) Fetch() ([]Document[T], error) {
 	return docs, nil
 }
 
-func (q *query[T]) Count() (int64, error) {
+func (q *Query[T]) Count() (int64, error) {
 	results, err := q.query.NewAggregationQuery().WithCount("all").Get(q.connection.ctx)
 	if err != nil {
 		return 0, err

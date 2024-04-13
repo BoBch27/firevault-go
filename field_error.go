@@ -19,7 +19,7 @@ type fieldError struct {
 	typ         reflect.Type
 }
 
-// FieldError contains all functions to get error details from fieldError
+// FieldError contains all functions to get error details
 type FieldError interface {
 	// Code returns a reason for the error
 	// (e.g. unknown-validation-rule)

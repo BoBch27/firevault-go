@@ -6,21 +6,25 @@ import (
 	"cloud.google.com/go/firestore"
 )
 
-type connection struct {
+// A Firevault Connection contains the Firestore Client
+type Connection struct {
 	ctx       context.Context
 	client    *firestore.Client
 	validator *validator
 }
 
-func Connect(ctx context.Context, client *firestore.Client) *connection {
+// Connect to Firevault
+func Connect(ctx context.Context, client *firestore.Client) *Connection {
 	val := newValidator()
-	return &connection{ctx, client, val}
+	return &Connection{ctx, client, val}
 }
 
-func (c *connection) RegisterValidation(name string, validation ValidationFn) error {
+// Register a new validation rule
+func (c *Connection) RegisterValidation(name string, validation ValidationFn) error {
 	return c.validator.registerValidation(name, validation)
 }
 
-func (c *connection) RegisterTransformation(name string, transformation TransformationFn) error {
+// Register a new transformation rule
+func (c *Connection) RegisterTransformation(name string, transformation TransformationFn) error {
 	return c.validator.registerTransformation(name, transformation)
 }

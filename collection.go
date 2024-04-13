@@ -4,8 +4,9 @@ import (
 	"cloud.google.com/go/firestore"
 )
 
-type collection[T interface{}] struct {
-	connection *connection
+// A Firevault Collection holds a reference to a Firestore CollectionRef
+type Collection[T interface{}] struct {
+	connection *Connection
 	ref        *firestore.CollectionRef
 }
 
@@ -18,14 +19,16 @@ type CreationOptions struct {
 	Id string
 }
 
-func NewCollection[T interface{}](connection *connection, name string) *collection[T] {
-	return &collection[T]{
+// Create a new Collection instance
+func NewCollection[T interface{}](connection *Connection, name string) *Collection[T] {
+	return &Collection[T]{
 		connection,
 		connection.client.Collection(name),
 	}
 }
 
-func (c *collection[T]) Validate(data *T, opts ...ValidationOptions) error {
+// Validate provided data
+func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
@@ -36,7 +39,8 @@ func (c *collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 	return err
 }
 
-func (c *collection[T]) Create(data *T, opts ...CreationOptions) (string, error) {
+// Create a Firestore document with provided data (after validation)
+func (c *Collection[T]) Create(data *T, opts ...CreationOptions) (string, error) {
 	var id string
 	valOptions := validationOpts{false, false}
 
@@ -67,7 +71,8 @@ func (c *collection[T]) Create(data *T, opts ...CreationOptions) (string, error)
 	return id, nil
 }
 
-func (c *collection[T]) FindById(id string) (T, error) {
+// Find a Firestore document with provided id
+func (c *Collection[T]) FindById(id string) (T, error) {
 	var doc T
 
 	docSnap, err := c.ref.Doc(id).Get(c.connection.ctx)
@@ -83,11 +88,13 @@ func (c *collection[T]) FindById(id string) (T, error) {
 	return doc, err
 }
 
-func (c *collection[T]) Find() *query[T] {
+// Create a new instance of a Firevault Query
+func (c *Collection[T]) Find() *Query[T] {
 	return newQuery[T](c.connection, c.ref.Query)
 }
 
-func (c *collection[T]) UpdateById(id string, data *T, opts ...ValidationOptions) error {
+// Update a Firestore document with provided id and data (after validation)
+func (c *Collection[T]) UpdateById(id string, data *T, opts ...ValidationOptions) error {
 	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
@@ -103,7 +110,8 @@ func (c *collection[T]) UpdateById(id string, data *T, opts ...ValidationOptions
 	return err
 }
 
-func (c *collection[T]) DeleteById(id string) error {
+// Delete a Firestore document with provided id
+func (c *Collection[T]) DeleteById(id string) error {
 	_, err := c.ref.Doc(id).Delete(c.connection.ctx)
 	return err
 }
