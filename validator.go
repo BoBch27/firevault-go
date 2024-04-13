@@ -22,8 +22,9 @@ type reflectedStruct struct {
 	values reflect.Value
 }
 
-type ValidationOpts struct {
-	SkipRequired bool
+type validationOpts struct {
+	skipRequired         bool
+	allowOmitEmptyUpdate bool
 }
 
 func newValidator() *validator {
@@ -64,7 +65,7 @@ func (v *validator) registerTransformation(name string, transformation Transform
 	return nil
 }
 
-func (v *validator) validate(data interface{}, opts ValidationOpts) (map[string]interface{}, error) {
+func (v *validator) validate(data interface{}, opts validationOpts) (map[string]interface{}, error) {
 	rs := reflectedStruct{reflect.TypeOf(data), reflect.ValueOf(data)}
 
 	if rs.values.Kind() != reflect.Pointer && rs.values.Kind() != reflect.Ptr {
@@ -82,7 +83,7 @@ func (v *validator) validate(data interface{}, opts ValidationOpts) (map[string]
 	return dataMap, err
 }
 
-func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map[string]interface{}, error) {
+func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map[string]interface{}, error) {
 	// map which will hold all fields to pass to firestore
 	dataMap := make(map[string]interface{})
 
@@ -105,8 +106,9 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 
 		rules := v.parseTag(tag)
 		omitEmpty := slices.Contains(rules, "omitempty")
+		omitEmptyUpdate := slices.Contains(rules, "omitemptyupdate")
 
-		// skip validation if value is zero and omitempty tag is present
+		// skip validation if value is zero and omitempty (or omitemptyupdate) tag is present
 		if omitEmpty {
 			if !hasValue(fieldValue) {
 				continue
@@ -115,12 +117,22 @@ func (v *validator) validateFields(rs reflectedStruct, opts ValidationOpts) (map
 				index := slices.Index(rules, "omitempty")
 				rules = slices.Delete(rules, index, index+1)
 			}
+		} else if omitEmptyUpdate {
+			if opts.allowOmitEmptyUpdate {
+				if !hasValue(fieldValue) {
+					continue
+				}
+			}
+
+			// remove omitemptyupdate from rules, so no validation is attempted
+			index := slices.Index(rules, "omitemptyupdate")
+			rules = slices.Delete(rules, index, index+1)
 		}
 
 		// validate field based on rules
 		for _, rule := range rules {
 			// skip "required" rule depending on the passed in options
-			if opts.SkipRequired && rule == "required" {
+			if opts.skipRequired && rule == "required" {
 				continue
 			}
 

@@ -9,8 +9,12 @@ type collection[T interface{}] struct {
 	ref        *firestore.CollectionRef
 }
 
+type ValidationOptions struct {
+	SkipRequired bool
+}
+
 type CreationOptions struct {
-	ValidationOpts
+	ValidationOptions
 	Id string
 }
 
@@ -21,11 +25,11 @@ func NewCollection[T interface{}](connection *connection, name string) *collecti
 	}
 }
 
-func (c *collection[T]) Validate(data T, opts ...ValidationOpts) error {
-	options := ValidationOpts{true}
+func (c *collection[T]) Validate(data T, opts ...ValidationOptions) error {
+	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
-		options = opts[0]
+		options.skipRequired = opts[0].SkipRequired
 	}
 
 	_, err := c.connection.validator.validate(data, options)
@@ -34,11 +38,11 @@ func (c *collection[T]) Validate(data T, opts ...ValidationOpts) error {
 
 func (c *collection[T]) Create(data T, opts ...CreationOptions) (string, error) {
 	var id string
-	valOptions := ValidationOpts{false}
+	valOptions := validationOpts{false, false}
 
 	if len(opts) > 0 {
 		id = opts[0].Id
-		valOptions = ValidationOpts{opts[0].SkipRequired}
+		valOptions.skipRequired = opts[0].SkipRequired
 	}
 
 	dataMap, err := c.connection.validator.validate(data, valOptions)
@@ -83,11 +87,11 @@ func (c *collection[T]) Find() *query[T] {
 	return newQuery[T](c.connection, c.ref.Query)
 }
 
-func (c *collection[T]) UpdateById(id string, data T, opts ...ValidationOpts) error {
-	options := ValidationOpts{true}
+func (c *collection[T]) UpdateById(id string, data T, opts ...ValidationOptions) error {
+	options := validationOpts{true, true}
 
 	if len(opts) > 0 {
-		options = opts[0]
+		options.skipRequired = opts[0].SkipRequired
 	}
 
 	dataMap, err := c.connection.validator.validate(data, options)
