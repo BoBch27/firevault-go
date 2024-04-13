@@ -114,8 +114,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 				continue
 			} else {
 				// remove omitempty from rules, so no validation is attempted
-				index := slices.Index(rules, "omitempty")
-				rules = slices.Delete(rules, index, index+1)
+				rules = delSliceItem(rules, "omitempty")
 			}
 		} else if omitEmptyUpdate {
 			if opts.allowOmitEmptyUpdate {
@@ -125,8 +124,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 			}
 
 			// remove omitemptyupdate from rules, so no validation is attempted
-			index := slices.Index(rules, "omitemptyupdate")
-			rules = slices.Delete(rules, index, index+1)
+			rules = delSliceItem(rules, "omitemptyupdate")
 		}
 
 		// validate field based on rules
