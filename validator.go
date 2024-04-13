@@ -122,9 +122,11 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 			rules = delSliceItem(rules, "omitemptyupdate")
 		}
 
-		// get pointer value
+		// get pointer value, only if it's not nil
 		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {
-			fieldValue = fieldValue.Elem()
+			if !fieldValue.IsNil() {
+				fieldValue = fieldValue.Elem()
+			}
 		}
 
 		// validate field based on rules
