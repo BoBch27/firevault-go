@@ -23,6 +23,7 @@ type reflectedStruct struct {
 }
 
 type validationOpts struct {
+	skipValidation       bool
 	skipRequired         bool
 	allowOmitEmptyUpdate bool
 }
@@ -135,6 +136,11 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 			// use first tag rule as new field name, rather than having a "name=" prefix
 			if ruleIndex == 0 && rule != "" {
 				fieldName = rule
+				continue
+			}
+
+			// skip validations depending on the passed in options
+			if opts.skipValidation {
 				continue
 			}
 

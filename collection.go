@@ -12,12 +12,13 @@ type Collection[T interface{}] struct {
 	ref        *firestore.CollectionRef
 }
 
-type ValidationOptions struct {
-	SkipRequired bool
+type Options struct {
+	SkipValidation bool
+	SkipRequired   bool
 }
 
 type CreationOptions struct {
-	ValidationOptions
+	Options
 	Id string
 }
 
@@ -36,8 +37,8 @@ func NewCollection[T interface{}](connection *Connection, name string) (*Collect
 }
 
 // Validate provided data
-func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
-	options := validationOpts{true, true}
+func (c *Collection[T]) Validate(data *T, opts ...Options) error {
+	options := validationOpts{false, true, true}
 
 	if len(opts) > 0 {
 		options.skipRequired = opts[0].SkipRequired
@@ -50,10 +51,11 @@ func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 // Create a Firestore document with provided data (after validation)
 func (c *Collection[T]) Create(data *T, opts ...CreationOptions) (string, error) {
 	var id string
-	valOptions := validationOpts{false, false}
+	valOptions := validationOpts{false, false, false}
 
 	if len(opts) > 0 {
 		id = opts[0].Id
+		valOptions.skipValidation = opts[0].SkipValidation
 		valOptions.skipRequired = opts[0].SkipRequired
 	}
 
@@ -102,10 +104,11 @@ func (c *Collection[T]) Find() *Query[T] {
 }
 
 // Update a Firestore document with provided id and data (after validation)
-func (c *Collection[T]) UpdateById(id string, data *T, opts ...ValidationOptions) error {
-	options := validationOpts{true, true}
+func (c *Collection[T]) UpdateById(id string, data *T, opts ...Options) error {
+	options := validationOpts{false, true, true}
 
 	if len(opts) > 0 {
+		options.skipValidation = opts[0].SkipValidation
 		options.skipRequired = opts[0].SkipRequired
 	}
 
