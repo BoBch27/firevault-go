@@ -213,17 +213,62 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 			}
 		}
 
+		finalValue := fieldValue.Interface()
+
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
-			newMap, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts)
+			newStruct, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts)
 			if err != nil {
 				return nil, err
 			}
 
-			dataMap[fieldName] = newMap
-		} else {
-			dataMap[fieldName] = fieldValue.Interface()
+			finalValue = newStruct
+			// If the field is a nested struct in map, recursively validate it and add to map
+		} else if fieldValue.Kind() == reflect.Map {
+			iter := fieldValue.MapRange()
+			newMap := make(map[string]interface{})
+
+			for iter.Next() {
+				val := iter.Value()
+				key := iter.Key()
+
+				if val.Kind() == reflect.Struct {
+					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts)
+					if err != nil {
+						return nil, err
+					}
+
+					newMap[key.String()] = newVal
+				} else {
+					newMap[key.String()] = val.Interface()
+				}
+			}
+
+			finalValue = newMap
+
+			// If the field is a nested struct in slice, recursively validate it and add to map
+		} else if fieldValue.Kind() == reflect.Array || fieldValue.Kind() == reflect.Slice {
+			newSlice := make([]interface{}, 0)
+
+			for idx := 0; idx < fieldValue.Len(); idx++ {
+				val := fieldValue.Index(idx)
+
+				if val.Kind() == reflect.Struct {
+					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts)
+					if err != nil {
+						return nil, err
+					}
+
+					newSlice = append(newSlice, newVal)
+				} else {
+					newSlice = append(newSlice, val.Interface())
+				}
+			}
+
+			finalValue = newSlice
 		}
+
+		dataMap[fieldName] = finalValue
 	}
 
 	return dataMap, nil
