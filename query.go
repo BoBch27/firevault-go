@@ -49,12 +49,20 @@ func (q *Query[T]) LimitToLast(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.LimitToLast(num))
 }
 
+func (q *Query[T]) StartAt(path string, field interface{}) *Query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).StartAt(field))
+}
+
 func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
 	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).StartAfter(field))
 }
 
 func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
 	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).EndBefore(field))
+}
+
+func (q *Query[T]) EndAt(path string, field interface{}) *Query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Asc).EndAt(field))
 }
 
 func (q *Query[T]) Offset(num int) *Query[T] {
