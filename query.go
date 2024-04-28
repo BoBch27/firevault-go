@@ -14,10 +14,20 @@ type Query[T interface{}] struct {
 	query      *firestore.Query
 }
 
+// A Document holds the Id and data related to fetched document
 type Document[T interface{}] struct {
 	Id   string
 	Data T
 }
+
+// Direction is the sort direction for result ordering
+type Direction int32
+
+// Asc sorts results from smallest to largest.
+const Asc Direction = Direction(1)
+
+// Desc sorts results from largest to smallest.
+const Desc Direction = Direction(2)
 
 func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T] {
 	return &Query[T]{connection, &q}
@@ -27,8 +37,8 @@ func (q *Query[T]) Where(path string, operator string, value interface{}) *Query
 	return newQuery[T](q.connection, q.query.Where(path, operator, value))
 }
 
-func (q *Query[T]) OrderBy(path string, direction firestore.Direction) *Query[T] {
-	return newQuery[T](q.connection, q.query.OrderBy(path, direction))
+func (q *Query[T]) OrderBy(path string, direction Direction) *Query[T] {
+	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Direction(direction)))
 }
 
 func (q *Query[T]) Limit(num int) *Query[T] {
@@ -51,6 +61,7 @@ func (q *Query[T]) Offset(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.Offset(num))
 }
 
+// Fetch documents based on query criteria
 func (q *Query[T]) Fetch() ([]Document[T], error) {
 	var doc T
 	var docs []Document[T]
@@ -77,6 +88,7 @@ func (q *Query[T]) Fetch() ([]Document[T], error) {
 	return docs, nil
 }
 
+// Return document count for specified query criteria
 func (q *Query[T]) Count() (int64, error) {
 	results, err := q.query.NewAggregationQuery().WithCount("all").Get(q.connection.ctx)
 	if err != nil {
