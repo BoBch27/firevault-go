@@ -110,7 +110,6 @@ func (q *Query[T]) Offset(num int) *Query[T] {
 
 // Fetch documents based on query criteria
 func (q *Query[T]) Fetch() ([]Document[T], error) {
-	var doc T
 	var docs []Document[T]
 
 	iter := q.query.Documents(q.connection.ctx)
@@ -123,6 +122,8 @@ func (q *Query[T]) Fetch() ([]Document[T], error) {
 		if err != nil {
 			return nil, err
 		}
+
+		var doc T
 
 		err = docSnap.DataTo(&doc)
 		if err != nil {
