@@ -30,6 +30,9 @@ const Asc Direction = Direction(1)
 // Desc sorts results from largest to smallest.
 const Desc Direction = Direction(2)
 
+// DocumentID is the special field name representing the ID of a document in queries.
+const DocumentID = "__name__"
+
 func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T] {
 	return &Query[T]{connection, &q}
 }
