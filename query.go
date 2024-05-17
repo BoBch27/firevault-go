@@ -1,6 +1,7 @@
 package firevault
 
 import (
+	"context"
 	"errors"
 
 	"cloud.google.com/go/firestore"
@@ -109,10 +110,10 @@ func (q *Query[T]) Offset(num int) *Query[T] {
 }
 
 // Fetch documents based on query criteria
-func (q *Query[T]) Fetch() ([]Document[T], error) {
+func (q *Query[T]) Fetch(ctx context.Context) ([]Document[T], error) {
 	var docs []Document[T]
 
-	iter := q.query.Documents(q.connection.ctx)
+	iter := q.query.Documents(ctx)
 
 	for {
 		docSnap, err := iter.Next()
@@ -137,8 +138,8 @@ func (q *Query[T]) Fetch() ([]Document[T], error) {
 }
 
 // Return document count for specified query criteria
-func (q *Query[T]) Count() (int64, error) {
-	results, err := q.query.NewAggregationQuery().WithCount("all").Get(q.connection.ctx)
+func (q *Query[T]) Count(ctx context.Context) (int64, error) {
+	results, err := q.query.NewAggregationQuery().WithCount("all").Get(ctx)
 	if err != nil {
 		return 0, err
 	}

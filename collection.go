@@ -1,6 +1,7 @@
 package firevault
 
 import (
+	"context"
 	"errors"
 
 	"cloud.google.com/go/firestore"
@@ -79,7 +80,7 @@ func (c *Collection[T]) Validate(data *T, opts ...Options) error {
 }
 
 // Create a Firestore document with provided data (after validation)
-func (c *Collection[T]) Create(data *T, opts ...CreationOptions) (string, error) {
+func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...CreationOptions) (string, error) {
 	var id string
 	valOptions := validationOpts{false, false, false}
 
@@ -95,14 +96,14 @@ func (c *Collection[T]) Create(data *T, opts ...CreationOptions) (string, error)
 	}
 
 	if id == "" {
-		docRef, _, err := c.ref.Add(c.connection.ctx, dataMap)
+		docRef, _, err := c.ref.Add(ctx, dataMap)
 		if err != nil {
 			return "", err
 		}
 
 		id = docRef.ID
 	} else {
-		_, err = c.ref.Doc(id).Set(c.connection.ctx, dataMap)
+		_, err = c.ref.Doc(id).Set(ctx, dataMap)
 		if err != nil {
 			return "", err
 		}
@@ -112,10 +113,10 @@ func (c *Collection[T]) Create(data *T, opts ...CreationOptions) (string, error)
 }
 
 // Find a Firestore document with provided id
-func (c *Collection[T]) FindById(id string) (T, error) {
+func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 	var doc T
 
-	docSnap, err := c.ref.Doc(id).Get(c.connection.ctx)
+	docSnap, err := c.ref.Doc(id).Get(ctx)
 	if err != nil {
 		return doc, err
 	}
@@ -134,7 +135,7 @@ func (c *Collection[T]) Find() *Query[T] {
 }
 
 // Update a Firestore document with provided id and data (after validation)
-func (c *Collection[T]) UpdateById(id string, data *T, opts ...UpdatingOptions) error {
+func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts ...UpdatingOptions) error {
 	options := validationOpts{false, true, true}
 	mergeFields := firestore.MergeAll
 
@@ -159,12 +160,12 @@ func (c *Collection[T]) UpdateById(id string, data *T, opts ...UpdatingOptions) 
 		return err
 	}
 
-	_, err = c.ref.Doc(id).Set(c.connection.ctx, dataMap, mergeFields)
+	_, err = c.ref.Doc(id).Set(ctx, dataMap, mergeFields)
 	return err
 }
 
 // Delete a Firestore document with provided id
-func (c *Collection[T]) DeleteById(id string) error {
-	_, err := c.ref.Doc(id).Delete(c.connection.ctx)
+func (c *Collection[T]) DeleteById(ctx context.Context, id string) error {
+	_, err := c.ref.Doc(id).Delete(ctx)
 	return err
 }
