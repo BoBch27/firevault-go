@@ -42,7 +42,7 @@ if err != nil {
 
 defer client.Close()
 
-connection := firevault.Connect(ctx, client)
+connection := firevault.Connect(client)
 ```
 
 ```go
@@ -64,7 +64,7 @@ if err != nil {
 
 defer client.Close()
 
-connection := firevault.Connect(ctx, client)
+connection := firevault.Connect(client)
 ```
 
 Models
@@ -194,9 +194,11 @@ The collection instance has **6** built-in methods to support interaction with F
 
 - `Create` - A method which validates passed in data and adds it as a document to Firestore. 
 	- *Expects*:
+		- ctx: A context.
 		- data: A `pointer` of a `struct` with populated fields which will be added to Firestore after validation.
-		- options *(optional)*: An instance of `CreationOptions` with two properties. 
-			- SkipRequired: A `bool` which when `true`, allows the validation to skip the `required` check. Default value is `false`. 
+		- options *(optional)*: An instance of `CreationOptions` with three properties. 
+			- SkipRequired: A `bool` which when `true`, means the `required` tag will be ignored (i.e. the `required` check is skipped). Default value is `false`.
+			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- ID: A `string` which will add a document to Firestore with the specified ID.
 	- *Returns*:
 		- id: A `string` with the new document's ID.
@@ -212,14 +214,14 @@ user := &User{
 		City:  "London",
 	},
 }
-id, err := collection.Create(user)
+id, err := collection.Create(ctx, user)
 if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 ```
 ```go
-id, err := collection.Create(user, CreationOptions{SkipRequired: true, ID: "custom-id"})
+id, err := collection.Create(ctx, user, CreationOptions{SkipRequired: true, ID: "custom-id"})
 if err != nil {
 	fmt.Println(err)
 } 
@@ -227,10 +229,13 @@ fmt.Println(id) // "custom-id"
 ```
 - `UpdateById` - A method which validates passed in data and updates given Firestore document. 
 	- *Expects*:
+		- ctx: A context.
 		- id: A `string` with the document's ID.
 		- data: A `pointer` of a `struct` with populated fields which will be used to update the document after validation.
-		- options *(optional)*: An instance of `ValidationOptions` with one property. 
-			- SkipRequired: A `bool` which when `false`, allows the validation to not skip the `required` check. Default value is `true`.
+		- options *(optional)*: An instance of `UpdatingOptions` with three properties. 
+			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
+			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
+			- MergeFields: An optional `slice` of type `FieldPath`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
 	- ***Important***: 
@@ -240,27 +245,46 @@ fmt.Println(id) // "custom-id"
 user := &User{
 	Password: "123567",
 }
-err := collection.UpdateById("6QVHL46WCE680ZG2Xn3X", user)
+err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", user)
 if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println("Success")
 ```
 ```go
-err := collection.UpdateById("6QVHL46WCE680ZG2Xn3X", user, ValidationOptions{SkipRequired: false})
+user := &User{
+	Password: "123567",
+}
+err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", user, UpdatingOptions{SkipValidation: true})
 if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println("Success")
 ```
+```go
+user := &User{
+	Address:  &Address{
+		Line1: "1 Main Road",
+		City:  "New York",
+	}
+}
+err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", user, UpdatingOptions{
+	MergeFields: []FieldPath{[]string{"address", "Line1"}},
+})
+if err != nil {
+	fmt.Println(err)
+} 
+fmt.Println("Success") // only the address.Line1 field will be updated
+```
 - `FindById` - A method which gets the Firestore document with the specified ID. 
 	- *Expects*:
+		- ctx: A context.
 		- id: A `string` containing the specified ID.
 	- *Returns*:
 		- doc: Returns the document with type `T` (the type used when initiating the collection instance).
 		- error: An `error` in case something goes wrong during interaction with Firestore.
 ```go
-user, err := collection.FindById("6QVHL46WCE680ZG2Xn3X")
+user, err := collection.FindById(ctx, "6QVHL46WCE680ZG2Xn3X")
 if err != nil {
 	fmt.Println(err)
 } 
@@ -268,12 +292,13 @@ fmt.Println(user) // {Bobby Donev hello@bobbydonev.com asdasdkjahdks 26 0xc0001d
 ```
 - `DeleteById` - A method which deletes the Firestore document with the specified ID. 
 	- *Expects*:
+		- ctx: A context.
 		- id: A `string` containing the specified ID.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during interaction with Firestore.
 	- If the document does not exist, it does nothing and `error` is `nil`.
 ```go
-err := collection.DeleteById("6QVHL46WCE680ZG2Xn3X")
+err := collection.DeleteById(ctx, "6QVHL46WCE680ZG2Xn3X")
 if err != nil {
 	fmt.Println(err)
 } 
@@ -282,8 +307,9 @@ fmt.Println("Success")
 - `Validate` - A method which validates passed in data. 
 	- *Expects*:
 		- data: A `pointer` of a `struct` with populated fields which will be validated.
-		- options *(optional)*: An instance of `ValidationOptions` with one property. 
-			- SkipRequired: A `bool` which when `false`, allows the validation to not skip the `required` check. Default value is `true`.
+		- options *(optional)*: An instance of `ValidationOptions` with two properties. 
+			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
+			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation.
 	- ***Important***: 
@@ -328,12 +354,12 @@ newQuery := collection.Find().Where("name", "==", "Bobby Donev")
 ```
 - `OrderBy` - Returns a new `query` that specifies the order in which results are returned. 
 	- *Expects*:
-		- path: A `string` which can be a single field or a dot-separated sequence of fields. To order by document name, use the special field path `firestore.DocumentID`.
-		- dir: An instance of `firestore.Direction{}` used to specify whether results are returned in ascending or descending order.
+		- path: A `string` which can be a single field or a dot-separated sequence of fields. To order by document name, use the special field path `DocumentID`.
+		- dir: A `Direction` used to specify whether results are returned in ascending or descending order.
 	- *Returns*:
 		- A new `query` instance.
 ```go
-newQuery := collection.Find().Where("name", "==", "Bobby Donev").OrderBy("age", firestore.Asc)
+newQuery := collection.Find().Where("name", "==", "Bobby Donev").OrderBy("age", Asc)
 ```
 - `Limit` - Returns a new `query` that specifies the maximum number of first results to return. 
 	- *Expects*:
@@ -359,32 +385,52 @@ newQuery := collection.Find().Where("name", "==", "Bobby Donev").LimitToLast(1)
 ```go
 newQuery := collection.Find().Where("name", "==", "Bobby Donev").Offset(1)
 ```
-- `StartAfter` - Returns a new `query` that specifies that results should start just after the document with the given field values.
+- `StartAt` - Returns a new `query` that specifies that results should start at the document with the given field values.
 	- *Expects*:
-		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `firestore.DocumentID`.
+		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `DocumentID`.
 		- field: An `interface{}` value used to filter out results.
 	- *Returns*:
 		- A new `query` instance.
 ```go
-newQuery := collection.Find().Where("name", "==", "Bobby Donev").StartAfter(firestore.DocumentID, "6QVHL46WCE680ZG2Xn3X")
+newQuery := collection.Find().Where("name", "==", "Bobby Donev").StartAt(DocumentID, "6QVHL46WCE680ZG2Xn3X")
+```
+- `StartAfter` - Returns a new `query` that specifies that results should start just after the document with the given field values.
+	- *Expects*:
+		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `DocumentID`.
+		- field: An `interface{}` value used to filter out results.
+	- *Returns*:
+		- A new `query` instance.
+```go
+newQuery := collection.Find().Where("name", "==", "Bobby Donev").StartAfter(DocumentID, "6QVHL46WCE680ZG2Xn3X")
 ```
 - `EndBefore` - Returns a new `query` that specifies that results should end just before the document with the given field values.
 	- *Expects*:
-		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `firestore.DocumentID`.
+		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `DocumentID`.
 		- field: An `interface{}` value used to filter out results.
 	- *Returns*:
 		- A new `query` instance.
 ```go
-newQuery := collection.Find().Where("name", "==", "Bobby Donev").EndBefore(firestore.DocumentID, "6QVHL46WCE680ZG2Xn3X")
+newQuery := collection.Find().Where("name", "==", "Bobby Donev").EndBefore(DocumentID, "6QVHL46WCE680ZG2Xn3X")
+```
+- `EndAt` - Returns a new `query` that specifies that results should end at the document with the given field values.
+	- *Expects*:
+		- path: A `string` which can be a single field or a dot-separated sequence of fields. To filter by document name, use the special field path `DocumentID`.
+		- field: An `interface{}` value used to filter out results.
+	- *Returns*:
+		- A new `query` instance.
+```go
+newQuery := collection.Find().Where("name", "==", "Bobby Donev").EndAt(DocumentID, "6QVHL46WCE680ZG2Xn3X")
 ```
 - `Fetch` - Returns results based on the chained methods before it.
+	- *Expects*:
+		- ctx: A context.
 	- *Returns*:
 		- results: A `slice` containing the results of type `Document[T]` (where `T` is the type used when initiating the collection instance). `Document[T]` has two properties.
 			- ID: A `string` which holds the document's ID.
 			- Data: The document's data of type `T`.
 		- error: An `error` in case something goes wrong.
 ```go
-users, err := collection.Find().Where("name", "==", "Bobby Donev").Fetch()
+users, err := collection.Find().Where("name", "==", "Bobby Donev").Fetch(ctx)
 if err != nil {
 	fmt.Println(err)
 } else {
@@ -393,11 +439,13 @@ if err != nil {
 }
 ```
 - `Count` - Returns the number of results based on the chained methods before it.
+	- *Expects*:
+		- ctx: A context.
 	- *Returns*:
 		- count: An `int64` representing the number of documents which meet the criteria.
 		- error: An `error` in case something goes wrong.
 ```go
-count, err := collection.Find().Where("name", "==", "Bobby Donev").Count()
+count, err := collection.Find().Where("name", "==", "Bobby Donev").Count(ctx)
 if err != nil {
 	fmt.Println(err)
 } else {
@@ -423,7 +471,7 @@ func parseError(err firevault.FieldError) {
 	}
 }
 
-id, err := collection.Create(&User{
+id, err := collection.Create(ctx, &User{
 	Name: "Bobby Donev",
 	Email: "hello@bobbydonev.com",
 	Password: "12345",
