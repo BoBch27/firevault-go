@@ -13,18 +13,18 @@ type Collection[T interface{}] struct {
 	ref        *firestore.CollectionRef
 }
 
-type Options struct {
+type ValidationOptions struct {
 	SkipValidation bool
 	SkipRequired   bool
 }
 
 type CreationOptions struct {
-	Options
+	ValidationOptions
 	Id string
 }
 
 type UpdatingOptions struct {
-	Options
+	ValidationOptions
 	// Specify which field paths to be overwritten. Other fields
 	// on the existing document will be untouched.
 	//
@@ -68,7 +68,7 @@ func NewCollection[T interface{}](connection *Connection, name string) (*Collect
 }
 
 // Validate provided data
-func (c *Collection[T]) Validate(data *T, opts ...Options) error {
+func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 	options := validationOpts{false, true, true}
 
 	if len(opts) > 0 {
