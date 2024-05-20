@@ -3,6 +3,7 @@ package firevault
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"cloud.google.com/go/firestore"
 )
@@ -16,6 +17,14 @@ type Collection[T interface{}] struct {
 type ValidationOptions struct {
 	SkipValidation bool
 	SkipRequired   bool
+	// Specify which field paths should ignore the "omitempty" and
+	// "omitemptyupdate" tags.
+	//
+	// This can be useful when zero values are needed only during
+	// a specific method call.
+	//
+	// If left empty, both tags will be honoured for all fields.
+	AllowEmptyFields []FieldPath
 }
 
 type CreationOptions struct {
@@ -69,10 +78,22 @@ func NewCollection[T interface{}](connection *Connection, name string) (*Collect
 
 // Validate provided data
 func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
-	options := validationOpts{false, true, true}
+	options := validationOpts{false, true, true, make([]string, 0)}
 
 	if len(opts) > 0 {
 		options.skipRequired = opts[0].SkipRequired
+
+		if len(opts[0].AllowEmptyFields) > 0 {
+			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
+				fieldPath := ""
+
+				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
+					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
+				}
+
+				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
+			}
+		}
 	}
 
 	_, err := c.connection.validator.validate(data, options)
@@ -82,15 +103,27 @@ func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 // Create a Firestore document with provided data (after validation)
 func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...CreationOptions) (string, error) {
 	var id string
-	valOptions := validationOpts{false, false, false}
+	options := validationOpts{false, false, false, make([]string, 0)}
 
 	if len(opts) > 0 {
 		id = opts[0].Id
-		valOptions.skipValidation = opts[0].SkipValidation
-		valOptions.skipRequired = opts[0].SkipRequired
+		options.skipValidation = opts[0].SkipValidation
+		options.skipRequired = opts[0].SkipRequired
+
+		if len(opts[0].AllowEmptyFields) > 0 {
+			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
+				fieldPath := ""
+
+				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
+					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
+				}
+
+				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
+			}
+		}
 	}
 
-	dataMap, err := c.connection.validator.validate(data, valOptions)
+	dataMap, err := c.connection.validator.validate(data, options)
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +169,7 @@ func (c *Collection[T]) Find() *Query[T] {
 
 // Update a Firestore document with provided id and data (after validation)
 func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts ...UpdatingOptions) error {
-	options := validationOpts{false, true, true}
+	options := validationOpts{false, true, true, make([]string, 0)}
 	mergeFields := firestore.MergeAll
 
 	if len(opts) > 0 {
@@ -152,6 +185,18 @@ func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts
 			}
 
 			mergeFields = firestore.Merge(fps...)
+		}
+
+		if len(opts[0].AllowEmptyFields) > 0 {
+			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
+				fieldPath := ""
+
+				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
+					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
+				}
+
+				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
+			}
 		}
 	}
 

@@ -26,6 +26,7 @@ type validationOpts struct {
 	skipValidation       bool
 	skipRequired         bool
 	allowOmitEmptyUpdate bool
+	allowEmptyField      []string
 }
 
 func newValidator() *validator {
@@ -80,11 +81,11 @@ func (v *validator) validate(data interface{}, opts validationOpts) (map[string]
 		return nil, errors.New("firevault: data must be a pointer to a struct")
 	}
 
-	dataMap, err := v.validateFields(rs, opts)
+	dataMap, err := v.validateFields(rs, opts, "")
 	return dataMap, err
 }
 
-func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map[string]interface{}, error) {
+func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path string) (map[string]interface{}, error) {
 	// map which will hold all fields to pass to firestore
 	dataMap := make(map[string]interface{})
 
@@ -101,21 +102,29 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 		}
 
 		rules := v.parseTag(tag)
+
+		// get field path based on name tag
+		fieldPath := fmt.Sprintf("%s.%s", path, rules[0])
 		omitEmpty := slices.Contains(rules, "omitempty")
 		omitEmptyUpdate := slices.Contains(rules, "omitemptyupdate")
 
 		// skip validation if value is zero and omitempty (or omitemptyupdate) tag is present
+		// unless tags are skipped using options
 		if omitEmpty {
-			if !hasValue(fieldValue) {
-				continue
-			} else {
-				// remove omitempty from rules, so no validation is attempted
-				rules = delSliceItem(rules, "omitempty")
-			}
-		} else if omitEmptyUpdate {
-			if opts.allowOmitEmptyUpdate {
+			if !slices.Contains(opts.allowEmptyField, fieldPath) {
 				if !hasValue(fieldValue) {
 					continue
+				}
+			}
+
+			// remove omitempty from rules, so no validation is attempted
+			rules = delSliceItem(rules, "omitempty")
+		} else if omitEmptyUpdate {
+			if opts.allowOmitEmptyUpdate {
+				if !slices.Contains(opts.allowEmptyField, fieldPath) {
+					if !hasValue(fieldValue) {
+						continue
+					}
 				}
 			}
 
@@ -217,7 +226,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
-			newStruct, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts)
+			newStruct, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts, fieldPath)
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +242,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 				key := iter.Key()
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts)
+					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts, fieldPath)
 					if err != nil {
 						return nil, err
 					}
@@ -254,7 +263,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts) (map
 				val := fieldValue.Index(idx)
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts)
+					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts, fieldPath)
 					if err != nil {
 						return nil, err
 					}
