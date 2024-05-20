@@ -15,37 +15,66 @@ type Collection[T interface{}] struct {
 }
 
 type ValidationOptions struct {
+	// Skip all validations - the "name" tag, "omitempty" tags and
+	// "ignore" tag will still be honoured. Default is "false".
 	SkipValidation bool
-	SkipRequired   bool
+	// Ignore the "required" tag during validation. Default is "true".
+	SkipRequired bool
 	// Specify which field paths should ignore the "omitempty" and
 	// "omitemptyupdate" tags.
 	//
 	// This can be useful when zero values are needed only during
 	// a specific method call.
 	//
-	// If left empty, both tags will be honoured for all fields.
+	// If left empty, those tags will be honoured for all fields.
 	AllowEmptyFields []FieldPath
 }
 
 type CreationOptions struct {
-	ValidationOptions
+	// Skip all validations - the "name", "omitempty" and
+	// "ignore" tags will still be honoured. Default is "false".
+	SkipValidation bool
+	// Ignore the "required" tag during validation. Default is "false".
+	SkipRequired bool
+	// Specify which field paths should ignore the "omitempty" tag.
+	//
+	// This can be useful when zero values are needed only during
+	// a specific method call.
+	//
+	// If left empty, those tags will be honoured for all fields.
+	AllowEmptyFields []FieldPath
+	// Specify custom doc ID. If left empty, Firestore will
+	// automatically create one.
 	Id string
 }
 
 type UpdatingOptions struct {
-	ValidationOptions
+	// Skip all validations - the "name" tag, "omitempty" tags and
+	// "ignore" tag will still be honoured. Default is "false".
+	SkipValidation bool
+	// Ignore the "required" tag during validation. Default is "true".
+	SkipRequired bool
+	// Specify which field paths should ignore the "omitempty" and
+	// "omitemptyupdate" tags.
+	//
+	// This can be useful when zero values are needed only during
+	// a specific method call.
+	//
+	// If left empty, those tags will be honoured for all fields.
+	AllowEmptyFields []FieldPath
 	// Specify which field paths to be overwritten. Other fields
 	// on the existing document will be untouched.
 	//
-	// It is an error if a provided field path does not refer to a value
-	// in the data passed.
+	// It is an error if a provided field path does not refer to
+	// a value in the data passed.
 	//
 	// If left empty, all the field paths given in the data argument
 	// will be overwritten.
 	MergeFields []FieldPath
 }
 
-// FieldPath is a non-empty sequence of non-empty fields that reference a value.
+// FieldPath is a non-empty sequence of non-empty fields that
+// reference a value.
 //
 // For example,
 //
