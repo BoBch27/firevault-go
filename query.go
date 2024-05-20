@@ -17,7 +17,7 @@ type Query[T interface{}] struct {
 
 // A Document holds the Id and data related to fetched document
 type Document[T interface{}] struct {
-	Id   string
+	ID   string
 	Data T
 }
 

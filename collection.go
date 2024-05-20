@@ -45,7 +45,7 @@ type CreationOptions struct {
 	AllowEmptyFields []FieldPath
 	// Specify custom doc ID. If left empty, Firestore will
 	// automatically create one.
-	Id string
+	ID string
 }
 
 type UpdatingOptions struct {
@@ -134,8 +134,8 @@ func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...CreationOpt
 	if len(opts) > 0 {
 		opts := opts[0]
 
-		if opts.Id != "" {
-			id = opts.Id
+		if opts.ID != "" {
+			id = opts.ID
 		}
 
 		options = c.getValidationOpts(create, options, ValidationOptions{
