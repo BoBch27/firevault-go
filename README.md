@@ -200,6 +200,7 @@ The collection instance has **6** built-in methods to support interaction with F
 			- SkipRequired: A `bool` which when `true`, means the `required` tag will be ignored (i.e. the `required` check is skipped). Default value is `false`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- ID: A `string` which will add a document to Firestore with the specified ID.
+			- AllowEmptyFields: An optional `slice` of type `FieldPath`, which is used to specify which fields can ignore the `omitempty` tag. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the tag.
 	- *Returns*:
 		- id: A `string` with the new document's ID.
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
@@ -221,11 +222,33 @@ if err != nil {
 fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 ```
 ```go
-id, err := collection.Create(ctx, user, CreationOptions{SkipRequired: true, ID: "custom-id"})
+id, err := collection.Create(ctx, user, CreationOptions{
+	SkipRequired: true, 
+	ID: "custom-id",
+})
 if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println(id) // "custom-id"
+```
+```go
+user := User{
+	Name: 	  "Bobby Donev",
+	Email:    "hello@bobbydonev.com",
+	Password: "12356",
+	Age:      0,
+	Address:  &Address{
+		Line1: "1 High Street",
+		City:  "London",
+	},
+}
+id, err := collection.Create(ctx, &user, CreationOptions{
+	AllowEmptyFields: []FieldPath{[]string{"age"}},
+})
+if err != nil {
+	fmt.Println(err)
+} 
+fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 ```
 - `UpdateById` - A method which validates passed in data and updates given Firestore document. 
 	- *Expects*:
@@ -236,6 +259,7 @@ fmt.Println(id) // "custom-id"
 			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- MergeFields: An optional `slice` of type `FieldPath`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten.
+			- AllowEmptyFields: An optional `slice` of type `FieldPath`, which is used to specify which fields can ignore the `omitempty` and `omitemptyupdate` tags. This can be useful when a field must be set to its zero value only on certain updates. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
 	- ***Important***: 
@@ -255,7 +279,9 @@ fmt.Println("Success")
 user := &User{
 	Password: "123567",
 }
-err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", user, UpdatingOptions{SkipValidation: true})
+err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", user, UpdatingOptions{
+	SkipValidation: true,
+})
 if err != nil {
 	fmt.Println(err)
 } 
@@ -310,6 +336,7 @@ fmt.Println("Success")
 		- options *(optional)*: An instance of `ValidationOptions` with two properties. 
 			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
+			- AllowEmptyFields: An optional `slice` of type `FieldPath`, which is used to specify which fields can ignore the `omitempty` and `omitemptyupdate` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation.
 	- ***Important***: 
