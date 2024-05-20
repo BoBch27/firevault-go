@@ -65,16 +65,16 @@ type UpdatingOptions struct {
 	// Specify which field paths to be overwritten. Other fields
 	// on the existing document will be untouched.
 	//
-	// It is an error if a provided field path does not refer to
-	// a value in the data passed.
+	// It is an error if a provided field path does not refer to a
+	// value in the data passed.
 	//
 	// If left empty, all the field paths given in the data argument
 	// will be overwritten.
 	MergeFields []FieldPath
 }
 
-// FieldPath is a non-empty sequence of non-empty fields that
-// reference a value.
+// FieldPath is a non-empty sequence of non-empty fields that reference
+// a value.
 //
 // For example,
 //
@@ -90,6 +90,15 @@ type UpdatingOptions struct {
 //
 // has no equivalent string form.
 type FieldPath []string
+
+// used to determine how to parse options
+type methodType string
+
+const (
+	validate methodType = "validate"
+	create   methodType = "create"
+	update   methodType = "update"
+)
 
 // Create a new Collection instance
 func NewCollection[T interface{}](connection *Connection, name string) (*Collection[T], error) {
@@ -110,19 +119,7 @@ func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 	options := validationOpts{false, true, true, make([]string, 0)}
 
 	if len(opts) > 0 {
-		options.skipRequired = opts[0].SkipRequired
-
-		if len(opts[0].AllowEmptyFields) > 0 {
-			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
-				fieldPath := ""
-
-				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
-					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
-				}
-
-				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
-			}
-		}
+		options = c.getValidationOpts(validate, options, opts[0])
 	}
 
 	_, err := c.connection.validator.validate(data, options)
@@ -131,25 +128,21 @@ func (c *Collection[T]) Validate(data *T, opts ...ValidationOptions) error {
 
 // Create a Firestore document with provided data (after validation)
 func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...CreationOptions) (string, error) {
-	var id string
+	id := ""
 	options := validationOpts{false, false, false, make([]string, 0)}
 
 	if len(opts) > 0 {
-		id = opts[0].Id
-		options.skipValidation = opts[0].SkipValidation
-		options.skipRequired = opts[0].SkipRequired
+		opts := opts[0]
 
-		if len(opts[0].AllowEmptyFields) > 0 {
-			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
-				fieldPath := ""
-
-				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
-					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
-				}
-
-				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
-			}
+		if opts.Id != "" {
+			id = opts.Id
 		}
+
+		options = c.getValidationOpts(create, options, ValidationOptions{
+			SkipValidation:   opts.SkipValidation,
+			SkipRequired:     opts.SkipRequired,
+			AllowEmptyFields: opts.AllowEmptyFields,
+		})
 	}
 
 	dataMap, err := c.connection.validator.validate(data, options)
@@ -202,31 +195,24 @@ func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts
 	mergeFields := firestore.MergeAll
 
 	if len(opts) > 0 {
-		options.skipValidation = opts[0].SkipValidation
-		options.skipRequired = opts[0].SkipRequired
+		opts := opts[0]
 
-		if len(opts[0].MergeFields) > 0 {
+		if len(opts.MergeFields) > 0 {
 			fps := make([]firestore.FieldPath, 0)
 
-			for i := 0; i < len(opts[0].MergeFields); i++ {
-				fp := firestore.FieldPath(opts[0].MergeFields[i])
+			for i := 0; i < len(opts.MergeFields); i++ {
+				fp := firestore.FieldPath(opts.MergeFields[i])
 				fps = append(fps, fp)
 			}
 
 			mergeFields = firestore.Merge(fps...)
 		}
 
-		if len(opts[0].AllowEmptyFields) > 0 {
-			for i := 0; i < len(opts[0].AllowEmptyFields); i++ {
-				fieldPath := ""
-
-				for x := 0; x < len(opts[0].AllowEmptyFields[i]); x++ {
-					fieldPath = fmt.Sprintf("%s.%s", fieldPath, opts[0].AllowEmptyFields[i][x])
-				}
-
-				options.allowEmptyField = append(options.allowEmptyField, fieldPath)
-			}
-		}
+		options = c.getValidationOpts(update, options, ValidationOptions{
+			SkipValidation:   opts.SkipValidation,
+			SkipRequired:     opts.SkipRequired,
+			AllowEmptyFields: opts.AllowEmptyFields,
+		})
 	}
 
 	dataMap, err := c.connection.validator.validate(data, options)
@@ -242,4 +228,35 @@ func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts
 func (c *Collection[T]) DeleteById(ctx context.Context, id string) error {
 	_, err := c.ref.Doc(id).Delete(ctx)
 	return err
+}
+
+// extract passed validation options
+func (c *Collection[T]) getValidationOpts(method methodType, curOpts validationOpts, passedOpts ValidationOptions) validationOpts {
+	if passedOpts.SkipValidation == !curOpts.skipValidation {
+		curOpts.skipValidation = passedOpts.SkipValidation
+	}
+
+	if method == validate || method == update {
+		if !passedOpts.SkipRequired {
+			curOpts.skipRequired = !passedOpts.SkipRequired
+		}
+	} else {
+		if passedOpts.SkipRequired {
+			curOpts.skipRequired = passedOpts.SkipRequired
+		}
+	}
+
+	if len(passedOpts.AllowEmptyFields) > 0 {
+		for i := 0; i < len(passedOpts.AllowEmptyFields); i++ {
+			fieldPath := ""
+
+			for x := 0; x < len(passedOpts.AllowEmptyFields[i]); x++ {
+				fieldPath = fmt.Sprintf("%s.%s", fieldPath, passedOpts.AllowEmptyFields[i][x])
+			}
+
+			curOpts.allowEmptyField = append(curOpts.allowEmptyField, fieldPath)
+		}
+	}
+
+	return curOpts
 }
