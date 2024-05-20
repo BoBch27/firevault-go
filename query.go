@@ -9,19 +9,19 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// A Firevault Query represents a Firestore Query
+// A Firevault Query represents a Firestore Query.
 type Query[T interface{}] struct {
 	connection *Connection
 	query      *firestore.Query
 }
 
-// A Document holds the Id and data related to fetched document
+// A Document holds the ID and data related to fetched document.
 type Document[T interface{}] struct {
 	ID   string
 	Data T
 }
 
-// Direction is the sort direction for result ordering
+// Direction is the sort direction for result ordering.
 type Direction int32
 
 // Asc sorts results from smallest to largest.
@@ -30,7 +30,8 @@ const Asc Direction = Direction(1)
 // Desc sorts results from largest to smallest.
 const Desc Direction = Direction(2)
 
-// DocumentID is the special field name representing the ID of a document in queries.
+// DocumentID is the special field name representing the
+// ID of a document in queries.
 const DocumentID = "__name__"
 
 func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T] {
@@ -112,7 +113,7 @@ func (q *Query[T]) Offset(num int) *Query[T] {
 	return newQuery[T](q.connection, q.query.Offset(num))
 }
 
-// Fetch documents based on query criteria
+// Fetch documents based on query criteria.
 func (q *Query[T]) Fetch(ctx context.Context) ([]Document[T], error) {
 	var docs []Document[T]
 
@@ -140,7 +141,7 @@ func (q *Query[T]) Fetch(ctx context.Context) ([]Document[T], error) {
 	return docs, nil
 }
 
-// Return document count for specified query criteria
+// Return document count for specified query criteria.
 func (q *Query[T]) Count(ctx context.Context) (int64, error) {
 	results, err := q.query.NewAggregationQuery().WithCount("all").Get(ctx)
 	if err != nil {
