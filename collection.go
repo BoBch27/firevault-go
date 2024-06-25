@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/firestore/apiv1/firestorepb"
+	"google.golang.org/api/iterator"
 )
 
 // A Firevault Collection holds a reference to a Firestore
@@ -13,6 +15,12 @@ import (
 type Collection[T interface{}] struct {
 	connection *Connection
 	ref        *firestore.CollectionRef
+}
+
+// A Document holds the ID and data related to fetched document.
+type Document[T interface{}] struct {
+	ID   string
+	Data T
 }
 
 type ValidationOptions struct {
@@ -168,28 +176,6 @@ func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...CreationOpt
 	return id, nil
 }
 
-// Find a Firestore document with provided ID.
-func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
-	var doc T
-
-	docSnap, err := c.ref.Doc(id).Get(ctx)
-	if err != nil {
-		return doc, err
-	}
-
-	err = docSnap.DataTo(&doc)
-	if err != nil {
-		return doc, err
-	}
-
-	return doc, err
-}
-
-// Create a new instance of a Firevault Query.
-func (c *Collection[T]) Query() *Query[T] {
-	return newQuery[T](c.ref.Query)
-}
-
 // Update a Firestore document with provided ID and data
 // (after validation).
 func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts ...UpdatingOptions) error {
@@ -230,6 +216,74 @@ func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts
 func (c *Collection[T]) DeleteById(ctx context.Context, id string) error {
 	_, err := c.ref.Doc(id).Delete(ctx)
 	return err
+}
+
+// Find a Firestore document with provided ID.
+func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
+	var doc T
+
+	docSnap, err := c.ref.Doc(id).Get(ctx)
+	if err != nil {
+		return doc, err
+	}
+
+	err = docSnap.DataTo(&doc)
+	if err != nil {
+		return doc, err
+	}
+
+	return doc, err
+}
+
+// Create a new instance of a Firevault Query.
+func (c *Collection[T]) Query() *Query {
+	return newQuery(c.ref.Query)
+}
+
+// Find all Firestore documents which match provided Query.
+func (c *Collection[T]) Find(ctx context.Context, query *Query) ([]Document[T], error) {
+	var docs []Document[T]
+
+	iter := query.query.Documents(ctx)
+
+	for {
+		docSnap, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		var doc T
+
+		err = docSnap.DataTo(&doc)
+		if err != nil {
+			return nil, err
+		}
+
+		docs = append(docs, Document[T]{docSnap.Ref.ID, doc})
+	}
+
+	return docs, nil
+}
+
+// Find number of Firestore documents which match provided Query.
+func (c *Collection[T]) Count(ctx context.Context, query *Query) (int64, error) {
+	results, err := query.query.NewAggregationQuery().WithCount("all").Get(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	count, ok := results["all"]
+	if !ok {
+		return 0, errors.New("firestore: couldn't get alias for COUNT from results")
+	}
+
+	countValue := count.(*firestorepb.Value)
+	countInt := countValue.GetIntegerValue()
+
+	return countInt, nil
 }
 
 // extract passed validation options

@@ -1,23 +1,12 @@
 package firevault
 
 import (
-	"context"
-	"errors"
-
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/firestore/apiv1/firestorepb"
-	"google.golang.org/api/iterator"
 )
 
 // A Firevault Query represents a Firestore Query.
-type Query[T interface{}] struct {
+type Query struct {
 	query *firestore.Query
-}
-
-// A Document holds the ID and data related to fetched document.
-type Document[T interface{}] struct {
-	ID   string
-	Data T
 }
 
 // Direction is the sort direction for result ordering.
@@ -33,8 +22,9 @@ const Desc Direction = Direction(2)
 // ID of a document in queries.
 const DocumentID = "__name__"
 
-func newQuery[T interface{}](query firestore.Query) *Query[T] {
-	return &Query[T]{&query}
+// create a new query instance
+func newQuery(query firestore.Query) *Query {
+	return &Query{&query}
 }
 
 // Where returns a new Query that filters the set of results.
@@ -46,28 +36,28 @@ func newQuery[T interface{}](query firestore.Query) *Query[T] {
 // The operator argument must be one of "==", "!=", "<", "<=",
 // ">", ">=", "array-contains", "array-contains-any", "in" or
 // "not-in".
-func (q *Query[T]) Where(path string, operator string, value interface{}) *Query[T] {
-	return newQuery[T](q.query.Where(path, operator, value))
+func (q *Query) Where(path string, operator string, value interface{}) *Query {
+	return newQuery(q.query.Where(path, operator, value))
 }
 
 // OrderBy returns a new Query that specifies the order in which
 // results are returned. A Query can have multiple OrderBy
 // specifications. It appends the specification to the list of
 // existing ones.
-func (q *Query[T]) OrderBy(path string, direction Direction) *Query[T] {
-	return newQuery[T](q.query.OrderBy(path, firestore.Direction(direction)))
+func (q *Query) OrderBy(path string, direction Direction) *Query {
+	return newQuery(q.query.OrderBy(path, firestore.Direction(direction)))
 }
 
 // Limit returns a new Query that specifies the maximum number of
 // first results to return.
-func (q *Query[T]) Limit(num int) *Query[T] {
-	return newQuery[T](q.query.Limit(num))
+func (q *Query) Limit(num int) *Query {
+	return newQuery(q.query.Limit(num))
 }
 
 // LimitToLast returns a new Query that specifies the maximum number
 // of last results to return.
-func (q *Query[T]) LimitToLast(num int) *Query[T] {
-	return newQuery[T](q.query.LimitToLast(num))
+func (q *Query) LimitToLast(num int) *Query {
+	return newQuery(q.query.LimitToLast(num))
 }
 
 // StartAt returns a new Query that specifies that results
@@ -75,8 +65,8 @@ func (q *Query[T]) LimitToLast(num int) *Query[T] {
 //
 // StartAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query[T]) StartAt(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.query.StartAt(field))
+func (q *Query) StartAt(path string, field interface{}) *Query {
+	return newQuery(q.query.StartAt(field))
 }
 
 // StartAfter returns a new Query that specifies that results
@@ -84,8 +74,8 @@ func (q *Query[T]) StartAt(path string, field interface{}) *Query[T] {
 //
 // StartAfter should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.query.StartAfter(field))
+func (q *Query) StartAfter(path string, field interface{}) *Query {
+	return newQuery(q.query.StartAfter(field))
 }
 
 // EndBefore returns a new Query that specifies that results
@@ -93,8 +83,8 @@ func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
 //
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.query.EndBefore(field))
+func (q *Query) EndBefore(path string, field interface{}) *Query {
+	return newQuery(q.query.EndBefore(field))
 }
 
 // EndBefore returns a new Query that specifies that results
@@ -102,58 +92,12 @@ func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
 //
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query[T]) EndAt(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.query.EndAt(field))
+func (q *Query) EndAt(path string, field interface{}) *Query {
+	return newQuery(q.query.EndAt(field))
 }
 
 // Offset returns a new Query that specifies the number of
 // initial results to skip.
-func (q *Query[T]) Offset(num int) *Query[T] {
-	return newQuery[T](q.query.Offset(num))
-}
-
-// Fetch documents based on query criteria.
-func (q *Query[T]) Fetch(ctx context.Context) ([]Document[T], error) {
-	var docs []Document[T]
-
-	iter := q.query.Documents(ctx)
-
-	for {
-		docSnap, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		var doc T
-
-		err = docSnap.DataTo(&doc)
-		if err != nil {
-			return nil, err
-		}
-
-		docs = append(docs, Document[T]{docSnap.Ref.ID, doc})
-	}
-
-	return docs, nil
-}
-
-// Return document count for specified query criteria.
-func (q *Query[T]) Count(ctx context.Context) (int64, error) {
-	results, err := q.query.NewAggregationQuery().WithCount("all").Get(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	count, ok := results["all"]
-	if !ok {
-		return 0, errors.New("firestore: couldn't get alias for COUNT from results")
-	}
-
-	countValue := count.(*firestorepb.Value)
-	countInt := countValue.GetIntegerValue()
-
-	return countInt, nil
+func (q *Query) Offset(num int) *Query {
+	return newQuery(q.query.Offset(num))
 }
