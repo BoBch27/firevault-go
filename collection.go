@@ -186,7 +186,7 @@ func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 }
 
 // Create a new instance of a Firevault Query.
-func (c *Collection[T]) Find() *Query[T] {
+func (c *Collection[T]) Query() *Query[T] {
 	return newQuery[T](c.ref.Query)
 }
 
