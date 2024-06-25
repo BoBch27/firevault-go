@@ -187,7 +187,7 @@ func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 
 // Create a new instance of a Firevault Query.
 func (c *Collection[T]) Find() *Query[T] {
-	return newQuery[T](c.connection, c.ref.Query)
+	return newQuery[T](c.ref.Query)
 }
 
 // Update a Firestore document with provided ID and data

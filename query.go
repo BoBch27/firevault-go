@@ -11,8 +11,7 @@ import (
 
 // A Firevault Query represents a Firestore Query.
 type Query[T interface{}] struct {
-	connection *Connection
-	query      *firestore.Query
+	query *firestore.Query
 }
 
 // A Document holds the ID and data related to fetched document.
@@ -34,8 +33,8 @@ const Desc Direction = Direction(2)
 // ID of a document in queries.
 const DocumentID = "__name__"
 
-func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T] {
-	return &Query[T]{connection, &q}
+func newQuery[T interface{}](query firestore.Query) *Query[T] {
+	return &Query[T]{&query}
 }
 
 // Where returns a new Query that filters the set of results.
@@ -48,7 +47,7 @@ func newQuery[T interface{}](connection *Connection, q firestore.Query) *Query[T
 // ">", ">=", "array-contains", "array-contains-any", "in" or
 // "not-in".
 func (q *Query[T]) Where(path string, operator string, value interface{}) *Query[T] {
-	return newQuery[T](q.connection, q.query.Where(path, operator, value))
+	return newQuery[T](q.query.Where(path, operator, value))
 }
 
 // OrderBy returns a new Query that specifies the order in which
@@ -56,19 +55,19 @@ func (q *Query[T]) Where(path string, operator string, value interface{}) *Query
 // specifications. It appends the specification to the list of
 // existing ones.
 func (q *Query[T]) OrderBy(path string, direction Direction) *Query[T] {
-	return newQuery[T](q.connection, q.query.OrderBy(path, firestore.Direction(direction)))
+	return newQuery[T](q.query.OrderBy(path, firestore.Direction(direction)))
 }
 
 // Limit returns a new Query that specifies the maximum number of
 // first results to return.
 func (q *Query[T]) Limit(num int) *Query[T] {
-	return newQuery[T](q.connection, q.query.Limit(num))
+	return newQuery[T](q.query.Limit(num))
 }
 
 // LimitToLast returns a new Query that specifies the maximum number
 // of last results to return.
 func (q *Query[T]) LimitToLast(num int) *Query[T] {
-	return newQuery[T](q.connection, q.query.LimitToLast(num))
+	return newQuery[T](q.query.LimitToLast(num))
 }
 
 // StartAt returns a new Query that specifies that results
@@ -77,7 +76,7 @@ func (q *Query[T]) LimitToLast(num int) *Query[T] {
 // StartAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
 func (q *Query[T]) StartAt(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.connection, q.query.StartAt(field))
+	return newQuery[T](q.query.StartAt(field))
 }
 
 // StartAfter returns a new Query that specifies that results
@@ -86,7 +85,7 @@ func (q *Query[T]) StartAt(path string, field interface{}) *Query[T] {
 // StartAfter should be called with one field value for each
 // OrderBy clause, in the order that they appear.
 func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.connection, q.query.StartAfter(field))
+	return newQuery[T](q.query.StartAfter(field))
 }
 
 // EndBefore returns a new Query that specifies that results
@@ -95,7 +94,7 @@ func (q *Query[T]) StartAfter(path string, field interface{}) *Query[T] {
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
 func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.connection, q.query.EndBefore(field))
+	return newQuery[T](q.query.EndBefore(field))
 }
 
 // EndBefore returns a new Query that specifies that results
@@ -104,13 +103,13 @@ func (q *Query[T]) EndBefore(path string, field interface{}) *Query[T] {
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
 func (q *Query[T]) EndAt(path string, field interface{}) *Query[T] {
-	return newQuery[T](q.connection, q.query.EndAt(field))
+	return newQuery[T](q.query.EndAt(field))
 }
 
 // Offset returns a new Query that specifies the number of
 // initial results to skip.
 func (q *Query[T]) Offset(num int) *Query[T] {
-	return newQuery[T](q.connection, q.query.Offset(num))
+	return newQuery[T](q.query.Offset(num))
 }
 
 // Fetch documents based on query criteria.
