@@ -22,13 +22,6 @@ type reflectedStruct struct {
 	values reflect.Value
 }
 
-type validationOpts struct {
-	skipValidation       bool
-	skipRequired         bool
-	allowOmitEmptyUpdate bool
-	allowEmptyField      []string
-}
-
 func newValidator() *validator {
 	validator := &validator{make(map[string]ValidationFn), make(map[string]TransformationFn)}
 
@@ -111,7 +104,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 		// skip validation if value is zero and omitempty (or omitemptyupdate) tag is present
 		// unless tags are skipped using options
 		if omitEmpty {
-			if !slices.Contains(opts.allowEmptyField, fieldPath) {
+			if !slices.Contains(opts.allowEmptyFields, fieldPath) {
 				if !hasValue(fieldValue) {
 					continue
 				}
@@ -121,7 +114,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 			rules = delSliceItem(rules, "omitempty")
 		} else if omitEmptyUpdate {
 			if opts.allowOmitEmptyUpdate {
-				if !slices.Contains(opts.allowEmptyField, fieldPath) {
+				if !slices.Contains(opts.allowEmptyFields, fieldPath) {
 					if !hasValue(fieldValue) {
 						continue
 					}
