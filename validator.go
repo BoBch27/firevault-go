@@ -96,8 +96,8 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 
 		rules := v.parseTag(tag)
 
-		// get field path based on name tag
-		fieldPath := fmt.Sprintf("%s.%s", path, rules[0])
+		// get field path based on name tag and trim leading dot (if exists)
+		fieldPath := strings.TrimPrefix(fmt.Sprintf("%s.%s", path, rules[0]), ".")
 		omitEmpty := slices.Contains(rules, "omitempty")
 		omitEmptyUpdate := slices.Contains(rules, "omitemptyupdate")
 

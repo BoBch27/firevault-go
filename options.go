@@ -18,23 +18,23 @@ type Options struct {
 	// Honour the "required" tag during validation and
 	// updating methods.
 	unskipRequired bool
-	// Specify which field paths should ignore the "omitempty" and
-	// "omitemptyupdate" tags.
+	// Specify which fields (using "dot notation") should ignore
+	// the "omitempty" and "omitemptyupdate" tags.
 	//
 	// This can be useful when zero values are needed only during
 	// a specific method call.
 	//
 	// If left empty, those tags will be honoured for all fields.
-	allowEmptyFields []FieldPath
-	// Specify which field paths to be overwritten. Other fields
-	// on the existing document will be untouched.
+	allowEmptyFields []string
+	// Specify which fields (using "dot notation") should ignore
+	// the "omitempty" and "omitemptyupdate" tags.
 	//
 	// It is an error if a provided field path does not refer to a
 	// value in the data passed.
 	//
 	// If left empty, all the field paths given in the data argument
 	// will be overwritten. Only used for updating method.
-	mergeFields []FieldPath
+	mergeFields []string
 	// Specify custom doc ID. If left empty, Firestore will
 	// automatically create one. Only used for creation method.
 	id string
@@ -70,26 +70,27 @@ func (o Options) UnskipRequired() Options {
 	return o
 }
 
-// Specify which field paths should ignore the "omitempty" and
-// "omitemptyupdate" tags.
+// Specify which field paths (using dot-separated strings)
+// should ignore the "omitempty" and "omitemptyupdate" tags.
 //
 // This can be useful when zero values are needed only during
 // a specific method call.
 //
 // If left empty, those tags will be honoured for all fields.
-func (o Options) AllowEmptyFields(fields ...FieldPath) Options {
+func (o Options) AllowEmptyFields(fields ...string) Options {
 	o.allowEmptyFields = append(o.allowEmptyFields, fields...)
 	return o
 }
 
-// Specify which field paths to be overwritten. Other fields
-// on the existing document will be untouched.
+// Specify which field paths (using dot-separated strings)
+// to be overwritten. Other fields on the existing document
+// will be untouched.
 //
 // It is an error if a provided field path does not refer to a
 // value in the data passed.
 //
 // Only used for updating method.
-func (o Options) MergeFields(fields ...FieldPath) Options {
+func (o Options) MergeFields(fields ...string) Options {
 	o.mergeFields = append(o.mergeFields, fields...)
 	return o
 }
@@ -102,21 +103,3 @@ func (o Options) ID(id string) Options {
 	o.id = id
 	return o
 }
-
-// FieldPath is a non-empty sequence of non-empty fields that reference
-// a value.
-//
-// For example,
-//
-//	[]string{"a", "b"}
-//
-// is equivalent to the string form
-//
-//	"a.b"
-//
-// but
-//
-//	[]string{"*"}
-//
-// has no equivalent string form.
-type FieldPath []string

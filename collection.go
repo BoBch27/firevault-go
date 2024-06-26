@@ -3,7 +3,7 @@ package firevault
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
@@ -202,22 +202,14 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 	}
 
 	if len(passedOpts.allowEmptyFields) > 0 {
-		for i := 0; i < len(passedOpts.allowEmptyFields); i++ {
-			fieldPath := ""
-
-			for x := 0; x < len(passedOpts.allowEmptyFields[i]); x++ {
-				fieldPath = fmt.Sprintf("%s.%s", fieldPath, passedOpts.allowEmptyFields[i][x])
-			}
-
-			options.allowEmptyFields = append(options.allowEmptyFields, fieldPath)
-		}
+		options.allowEmptyFields = passedOpts.allowEmptyFields
 	}
 
 	if method == update && len(passedOpts.mergeFields) > 0 {
 		fps := make([]firestore.FieldPath, 0)
 
 		for i := 0; i < len(passedOpts.mergeFields); i++ {
-			fp := firestore.FieldPath(passedOpts.mergeFields[i])
+			fp := firestore.FieldPath(strings.Split(passedOpts.mergeFields[i], "."))
 			fps = append(fps, fp)
 		}
 
