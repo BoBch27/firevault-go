@@ -43,8 +43,8 @@ const Desc Direction = Direction(2)
 // ID of a document in queries.
 const DocumentID = "__name__"
 
-// create a new query instance
-func newQuery() Query {
+// Create a new Query instance.
+func NewQuery() Query {
 	return Query{}
 }
 

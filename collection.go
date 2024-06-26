@@ -235,11 +235,6 @@ func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 	return doc, err
 }
 
-// Create a new instance of a Firevault Query.
-func (c *Collection[T]) Query() Query {
-	return newQuery()
-}
-
 // Find all Firestore documents which match provided Query.
 func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
 	builtQuery := c.buildQuery(query)
