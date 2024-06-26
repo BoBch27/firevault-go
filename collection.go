@@ -236,15 +236,16 @@ func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 }
 
 // Create a new instance of a Firevault Query.
-func (c *Collection[T]) Query() *Query {
-	return newQuery(c.ref.Query)
+func (c *Collection[T]) Query() Query {
+	return newQuery()
 }
 
 // Find all Firestore documents which match provided Query.
-func (c *Collection[T]) Find(ctx context.Context, query *Query) ([]Document[T], error) {
-	var docs []Document[T]
+func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
+	builtQuery := c.buildQuery(query)
+	iter := builtQuery.Documents(ctx)
 
-	iter := query.query.Documents(ctx)
+	var docs []Document[T]
 
 	for {
 		docSnap, err := iter.Next()
@@ -269,8 +270,9 @@ func (c *Collection[T]) Find(ctx context.Context, query *Query) ([]Document[T], 
 }
 
 // Find number of Firestore documents which match provided Query.
-func (c *Collection[T]) Count(ctx context.Context, query *Query) (int64, error) {
-	results, err := query.query.NewAggregationQuery().WithCount("all").Get(ctx)
+func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
+	builtQuery := c.buildQuery(query)
+	results, err := builtQuery.NewAggregationQuery().WithCount("all").Get(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -315,4 +317,47 @@ func (c *Collection[T]) getValidationOpts(method methodType, curOpts validationO
 	}
 
 	return curOpts
+}
+
+// build a new query
+func (c *Collection[T]) buildQuery(query Query) firestore.Query {
+	newQuery := c.ref.Query
+
+	for _, filter := range query.filters {
+		newQuery = newQuery.Where(filter.path, filter.operator, filter.value)
+	}
+
+	for _, order := range query.orders {
+		newQuery = newQuery.OrderBy(order.path, firestore.Direction(order.direction))
+	}
+
+	if len(query.startAt) > 0 {
+		newQuery = newQuery.StartAt(query.startAt...)
+	}
+
+	if len(query.startAfter) > 0 {
+		newQuery = newQuery.StartAfter(query.startAfter...)
+	}
+
+	if len(query.endBefore) > 0 {
+		newQuery = newQuery.EndBefore(query.endBefore...)
+	}
+
+	if len(query.endAt) > 0 {
+		newQuery = newQuery.EndAt(query.endAt...)
+	}
+
+	if query.limit > 0 {
+		newQuery = newQuery.Limit(query.limit)
+	}
+
+	if query.limitToLast > 0 {
+		newQuery = newQuery.LimitToLast(query.limitToLast)
+	}
+
+	if query.offset > 0 {
+		newQuery = newQuery.Offset(query.offset)
+	}
+
+	return newQuery
 }

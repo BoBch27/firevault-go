@@ -1,12 +1,33 @@
 package firevault
 
-import (
-	"cloud.google.com/go/firestore"
-)
-
-// A Firevault Query represents a Firestore Query.
+// A Firevault Query helps to filter and order
+// Firestore documents.
+//
+// Query values are immutable. Each Query method creates
+// a new Query - it does not modify the old.
 type Query struct {
-	query *firestore.Query
+	filters     []filter
+	orders      []order
+	startAt     []interface{}
+	startAfter  []interface{}
+	endBefore   []interface{}
+	endAt       []interface{}
+	limit       int
+	limitToLast int
+	offset      int
+}
+
+// represents a single filter in a Query
+type filter struct {
+	path     string
+	operator string
+	value    interface{}
+}
+
+// represents a single order in a Query
+type order struct {
+	path      string
+	direction Direction
 }
 
 // Direction is the sort direction for result ordering.
@@ -23,41 +44,32 @@ const Desc Direction = Direction(2)
 const DocumentID = "__name__"
 
 // create a new query instance
-func newQuery(query firestore.Query) *Query {
-	return &Query{&query}
+func newQuery() Query {
+	return Query{}
 }
 
 // Where returns a new Query that filters the set of results.
+// A Query can have multiple filters.
 //
-// A Query can have multiple filters. The path argument can be
-// a single field or a dot-separated sequence of fields, and
-// must not contain any of the runes "˜*/[]".
+// The path argument can be asingle field or a dot-separated
+// sequence of fields, and must not contain any of
+// the runes "˜*/[]".
 //
 // The operator argument must be one of "==", "!=", "<", "<=",
 // ">", ">=", "array-contains", "array-contains-any", "in" or
 // "not-in".
-func (q *Query) Where(path string, operator string, value interface{}) *Query {
-	return newQuery(q.query.Where(path, operator, value))
+func (q Query) Where(path string, operator string, value interface{}) Query {
+	q.filters = append(q.filters, filter{path, operator, value})
+	return q
 }
 
 // OrderBy returns a new Query that specifies the order in which
 // results are returned. A Query can have multiple OrderBy
 // specifications. It appends the specification to the list of
 // existing ones.
-func (q *Query) OrderBy(path string, direction Direction) *Query {
-	return newQuery(q.query.OrderBy(path, firestore.Direction(direction)))
-}
-
-// Limit returns a new Query that specifies the maximum number of
-// first results to return.
-func (q *Query) Limit(num int) *Query {
-	return newQuery(q.query.Limit(num))
-}
-
-// LimitToLast returns a new Query that specifies the maximum number
-// of last results to return.
-func (q *Query) LimitToLast(num int) *Query {
-	return newQuery(q.query.LimitToLast(num))
+func (q Query) OrderBy(path string, direction Direction) Query {
+	q.orders = append(q.orders, order{path, direction})
+	return q
 }
 
 // StartAt returns a new Query that specifies that results
@@ -65,8 +77,9 @@ func (q *Query) LimitToLast(num int) *Query {
 //
 // StartAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query) StartAt(path string, field interface{}) *Query {
-	return newQuery(q.query.StartAt(field))
+func (q Query) StartAt(value ...interface{}) Query {
+	q.startAt = value
+	return q
 }
 
 // StartAfter returns a new Query that specifies that results
@@ -74,8 +87,9 @@ func (q *Query) StartAt(path string, field interface{}) *Query {
 //
 // StartAfter should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query) StartAfter(path string, field interface{}) *Query {
-	return newQuery(q.query.StartAfter(field))
+func (q Query) StartAfter(value ...interface{}) Query {
+	q.startAfter = value
+	return q
 }
 
 // EndBefore returns a new Query that specifies that results
@@ -83,21 +97,38 @@ func (q *Query) StartAfter(path string, field interface{}) *Query {
 //
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query) EndBefore(path string, field interface{}) *Query {
-	return newQuery(q.query.EndBefore(field))
+func (q Query) EndBefore(value ...interface{}) Query {
+	q.endBefore = value
+	return q
 }
 
-// EndBefore returns a new Query that specifies that results
+// EndAt returns a new Query that specifies that results
 // should end at the document with the given field values.
 //
-// EndBefore should be called with one field value for each
+// EndAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q *Query) EndAt(path string, field interface{}) *Query {
-	return newQuery(q.query.EndAt(field))
+func (q Query) EndAt(value ...interface{}) Query {
+	q.endAt = value
+	return q
+}
+
+// Limit returns a new Query that specifies the maximum number of
+// first results to return.
+func (q Query) Limit(num int) Query {
+	q.limit = num
+	return q
+}
+
+// LimitToLast returns a new Query that specifies the maximum number
+// of last results to return.
+func (q Query) LimitToLast(num int) Query {
+	q.limitToLast = num
+	return q
 }
 
 // Offset returns a new Query that specifies the number of
 // initial results to skip.
-func (q *Query) Offset(num int) *Query {
-	return newQuery(q.query.Offset(num))
+func (q Query) Offset(num int) Query {
+	q.offset = num
+	return q
 }
