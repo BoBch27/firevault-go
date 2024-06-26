@@ -8,8 +8,11 @@ type validationOpts struct {
 	allowEmptyFields     []string
 }
 
-// Firevault Options allows for setting options for
-// validation, creation and updating methods.
+// A Firevault Options instance allows for the overriding of
+// default options for validation, creation and updating methods.
+//
+// Options values are immutable. Each Options method creates
+// a new instance - it does not modify the old.
 type Options struct {
 	// Skip all validations. Default is "false".
 	skipValidation bool
@@ -41,6 +44,12 @@ type Options struct {
 }
 
 // Create a new Options instance.
+//
+// A Firevault Options instance allows for the overriding of
+// default options for validation, creation and updating methods.
+//
+// Options values are immutable. Each Options method creates
+// a new instance - it does not modify the old.
 func NewOptions() Options {
 	return Options{}
 }

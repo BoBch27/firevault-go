@@ -44,6 +44,12 @@ const Desc Direction = Direction(2)
 const DocumentID = "__name__"
 
 // Create a new Query instance.
+//
+// A Firevault Query helps to filter and order
+// Firestore documents.
+//
+// Query values are immutable. Each Query method creates
+// a new Query - it does not modify the old.
 func NewQuery() Query {
 	return Query{}
 }

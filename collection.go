@@ -10,8 +10,9 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// A Firevault Collection holds a reference to a Firestore
-// CollectionRef.
+// A Firevault Collection allows for the fetching and
+// modifying (with validation) of documents in a
+// Firestore Collection.
 type Collection[T interface{}] struct {
 	connection *Connection
 	ref        *firestore.CollectionRef
@@ -34,6 +35,10 @@ const (
 )
 
 // Create a new Collection instance.
+//
+// A Firevault Collection allows for the fetching and
+// modifying (with validation) of documents in a
+// Firestore Collection.
 func NewCollection[T interface{}](connection *Connection, name string) (*Collection[T], error) {
 	if name == "" {
 		return nil, errors.New("firevault: collection name cannot be empty")
