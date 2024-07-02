@@ -25,15 +25,6 @@ type Document[T interface{}] struct {
 	Data T
 }
 
-// used to determine how to parse options
-type methodType string
-
-const (
-	validate methodType = "validate"
-	create   methodType = "create"
-	update   methodType = "update"
-)
-
 // Create a new Collection instance.
 //
 // A Firevault Collection allows for the fetching and
@@ -174,6 +165,7 @@ func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
 // extract passed options
 func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (validationOpts, string, firestore.SetOption) {
 	options := validationOpts{
+		method:               method,
 		skipValidation:       false,
 		skipRequired:         false,
 		allowOmitEmptyUpdate: false,

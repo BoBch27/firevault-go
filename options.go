@@ -1,7 +1,17 @@
 package firevault
 
+// used to determine how to parse options
+type methodType string
+
+const (
+	validate methodType = "validate"
+	create   methodType = "create"
+	update   methodType = "update"
+)
+
 // options used by validator
 type validationOpts struct {
+	method               methodType
 	skipValidation       bool
 	skipRequired         bool
 	allowOmitEmptyUpdate bool
