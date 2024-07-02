@@ -108,7 +108,7 @@ func (o Options) MergeFields(fields ...string) Options {
 // automatically create one.
 //
 // Only used for creation method.
-func (o Options) ID(id string) Options {
+func (o Options) CustomID(id string) Options {
 	o.id = id
 	return o
 }
