@@ -15,7 +15,7 @@ type validationOpts struct {
 	skipValidation       bool
 	skipRequired         bool
 	allowOmitEmptyUpdate bool
-	allowEmptyFields     []string
+	emptyFieldsAllowed   []string
 }
 
 // A Firevault Options instance allows for the overriding of

@@ -104,7 +104,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 		// skip validation if value is zero and omitempty (or omitemptyupdate) tag is present
 		// unless tags are skipped using options
 		if omitEmpty {
-			if !slices.Contains(opts.allowEmptyFields, fieldPath) {
+			if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
 				if !hasValue(fieldValue) {
 					continue
 				}
@@ -114,7 +114,7 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 			rules = delSliceItem(rules, "omitempty")
 		} else if omitEmptyUpdate {
 			if opts.allowOmitEmptyUpdate {
-				if !slices.Contains(opts.allowEmptyFields, fieldPath) {
+				if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
 					if !hasValue(fieldValue) {
 						continue
 					}

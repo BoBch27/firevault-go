@@ -169,7 +169,7 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 		skipValidation:       false,
 		skipRequired:         false,
 		allowOmitEmptyUpdate: false,
-		allowEmptyFields:     make([]string, 0),
+		emptyFieldsAllowed:   make([]string, 0),
 	}
 
 	if method != create {
@@ -199,7 +199,7 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 	}
 
 	if len(passedOpts.allowEmptyFields) > 0 {
-		options.allowEmptyFields = passedOpts.allowEmptyFields
+		options.emptyFieldsAllowed = passedOpts.allowEmptyFields
 	}
 
 	if method == update && len(passedOpts.mergeFields) > 0 {
