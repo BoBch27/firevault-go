@@ -49,5 +49,9 @@ func asTime(param string) time.Time {
 // delSliceItem deletes an item from a slice
 func delSliceItem[T comparable](slice []T, item T) []T {
 	index := slices.Index(slice, item)
+	if index == -1 {
+		return slice
+	}
+
 	return slices.Delete(slice, index, index+1)
 }

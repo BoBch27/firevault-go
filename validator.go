@@ -78,7 +78,11 @@ func (v *validator) validate(data interface{}, opts validationOpts) (map[string]
 	return dataMap, err
 }
 
-func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path string) (map[string]interface{}, error) {
+func (v *validator) validateFields(
+	rs reflectedStruct,
+	opts validationOpts,
+	path string,
+) (map[string]interface{}, error) {
 	// map which will hold all fields to pass to firestore
 	dataMap := make(map[string]interface{})
 
@@ -98,32 +102,26 @@ func (v *validator) validateFields(rs reflectedStruct, opts validationOpts, path
 
 		// get field path based on name tag and trim leading dot (if exists)
 		fieldPath := strings.TrimPrefix(fmt.Sprintf("%s.%s", path, rules[0]), ".")
-		omitEmpty := slices.Contains(rules, "omitempty")
-		omitEmptyUpdate := slices.Contains(rules, "omitemptyupdate")
 
-		// skip validation if value is zero and omitempty (or omitemptyupdate) tag is present
+		// skip validation if value is zero and an omitempty tag is present
 		// unless tags are skipped using options
-		if omitEmpty {
+		omitEmptyMethodTag := fmt.Sprintf("omitempty_%s", opts.method)
+		shouldOmitEmpty := slices.Contains(rules, "omitempty") ||
+			slices.Contains(rules, omitEmptyMethodTag)
+
+		if shouldOmitEmpty {
 			if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
 				if !hasValue(fieldValue) {
 					continue
 				}
 			}
-
-			// remove omitempty from rules, so no validation is attempted
-			rules = delSliceItem(rules, "omitempty")
-		} else if omitEmptyUpdate {
-			if opts.allowOmitEmptyUpdate {
-				if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
-					if !hasValue(fieldValue) {
-						continue
-					}
-				}
-			}
-
-			// remove omitemptyupdate from rules, so no validation is attempted
-			rules = delSliceItem(rules, "omitemptyupdate")
 		}
+
+		// remove omitempty tags from rules, so no validation is attempted
+		rules = delSliceItem(rules, "omitempty")
+		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", create))
+		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", update))
+		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", validate))
 
 		// get pointer value, only if it's not nil
 		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {

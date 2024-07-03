@@ -11,11 +11,10 @@ const (
 
 // options used by validator
 type validationOpts struct {
-	method               methodType
-	skipValidation       bool
-	skipRequired         bool
-	allowOmitEmptyUpdate bool
-	emptyFieldsAllowed   []string
+	method             methodType
+	skipValidation     bool
+	skipRequired       bool
+	emptyFieldsAllowed []string
 }
 
 // A Firevault Options instance allows for the overriding of

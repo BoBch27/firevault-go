@@ -165,16 +165,14 @@ func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
 // extract passed options
 func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (validationOpts, string, firestore.SetOption) {
 	options := validationOpts{
-		method:               method,
-		skipValidation:       false,
-		skipRequired:         false,
-		allowOmitEmptyUpdate: false,
-		emptyFieldsAllowed:   make([]string, 0),
+		method:             method,
+		skipValidation:     false,
+		skipRequired:       false,
+		emptyFieldsAllowed: make([]string, 0),
 	}
 
 	if method != create {
 		options.skipRequired = true
-		options.allowOmitEmptyUpdate = true
 	}
 
 	if len(opts) == 0 {
