@@ -103,12 +103,15 @@ Other than the validation tags, Firevault supports the following built-in tags:
 
 Validations
 ------------
-Firevault validates fields' values based on the defined rules. There are **4** built-in validations, whilst also supporting the ability to add **custom** ones. 
+Firevault validates fields' values based on the defined rules. There are built-in validations, with support for adding **custom** ones. 
 
 *Again, the order in which they are executed depends on the tag order.*
 
 *Built-in validations:*
 - `required` - Validates whether the field's value is not the default type value (i.e. `nil` for `pointer`, `""` for `string`, `0` for `int` etc.). Fails when it is the default.
+- `required_create` - Works the same way as `required`, but only for the `Create` method. Ignored during `UpdateById` and `Validate` methods.
+- `required_update` - Works the same way as `required`, but only for the `UpdateById` method. Ignored during `Create` and `Validate` methods.
+- `required_validate` - Works the same way as `required`, but only for the `Validate` method. Ignored during `Create` and `UpdateById` methods.
 - `max` - Validates whether the field's value, or length, is less than or equal to the param's value. Requires a param (e.g. `max=20`). For numbers, it checks the value, for strings, maps and slices, it checks the length.
 - `min` - Validates whether the field's value, or length, is greater than or equal to the param's value. Requires a param (e.g. `min=20`). For numbers, it checks the value, for strings, maps and slices, it checks the length.
 - `email` - Validates whether the field's string value is a valid email address.
@@ -202,7 +205,6 @@ The collection instance has **7** built-in methods to support interaction with F
 		- data: A `pointer` of a `struct` with populated fields which will be added to Firestore after validation.
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect. 
-			- SkipRequired: A `bool` which when `true`, means the `required` tag will be ignored (i.e. the `required` check is skipped). Default value is `false`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- ID: A `string` which will add a document to Firestore with the specified ID.
 			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_create` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
@@ -230,7 +232,7 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 id, err := collection.Create(
 	ctx, 
 	&user, 
-	NewOptions().SkipRequired().ID("custom-id"),
+	NewOptions().ID("custom-id"),
 )
 if err != nil {
 	fmt.Println(err)
@@ -265,7 +267,6 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 		- data: A `pointer` of a `struct` with populated fields which will be used to update the document after validation.
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect.
-			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- MergeFields: An optional `string` `slice`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten.
 			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_update` tags. This can be useful when a field must be set to its zero value only on certain updates. If left empty, all fields will honour the two tags.
@@ -322,7 +323,6 @@ fmt.Println("Success") // only the address.Line1 field will be updated
 		- data: A `pointer` of a `struct` with populated fields which will be validated.
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect.
-			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_validate` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
 	- *Returns*:
@@ -334,13 +334,6 @@ user := User{
 	Email: "HELLO@BOBBYDONEV.COM",
 }
 err := collection.Validate(&user)
-if err != nil {
-	fmt.Println(err)
-} 
-fmt.Println(user) // {hello@bobbydonev.com}
-```
-```go
-err := collection.Validate(user, NewOptions().UnskipRequired())
 if err != nil {
 	fmt.Println(err)
 } 
@@ -523,18 +516,6 @@ The `Options` instance has **6** built-in methods to support overriding default 
 		- A new `Options` instance.
 ```go
 newOptions := options.SkipValidation()
-```
-- `SkipRequired` - Returns a new `Options` instance that allows to skip the "required" tag during validation. Only useful during creation method, as the default behaviour is to not skip it.
-	- *Returns*:
-		- A new `Options` instance.
-```go
-newOptions := options.SkipRequired()
-```
-- `UnskipRequired` - Returns a new `Options` instance that allows to honour the "required" tag during validation. Only useful during validation and updating methods, as the default behaviour is to skip it.
-	- *Returns*:
-		- A new `Options` instance.
-```go
-newOptions := options.UnskipRequired()
 ```
 - `AllowEmptyFields` - Returns a new `Options` instance that allows to specify which field paths should ignore the "omitempty" tags. This can be useful when zero values are needed only during a specific method call. If left empty, those tags will be honoured for all fields.
 	- *Expects*:
