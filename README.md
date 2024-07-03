@@ -96,7 +96,9 @@ After that, each tag is a different validation rule, and they will be parsed in 
 
 Other than the validation tags, Firevault supports the following built-in tags:
 - `omitempty` - If the field is set to it’s default value (e.g. `0` for `int`, or `""` for `string`), the field will be omitted from validation and Firestore.
-- `omitemptyupdate` - Works the same way as `omitempty`, but only for the `Validate` and `UpdateById` methods. Ignored during `Create`.
+- `omitempty_create` - Works the same way as `omitempty`, but only for the `Create` method. Ignored during `UpdateById` and `Validate` methods.
+- `omitempty_update` - Works the same way as `omitempty`, but only for the `UpdateById` method. Ignored during `Create` and `Validate` methods.
+- `omitempty_validate` - Works the same way as `omitempty`, but only for the `Validate` method. Ignored during `Create` and `UpdateById` methods.
 - `-` - Ignores the field.
 
 Validations
@@ -203,7 +205,7 @@ The collection instance has **7** built-in methods to support interaction with F
 			- SkipRequired: A `bool` which when `true`, means the `required` tag will be ignored (i.e. the `required` check is skipped). Default value is `false`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- ID: A `string` which will add a document to Firestore with the specified ID.
-			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` tag. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the tag.
+			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_create` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- id: A `string` with the new document's ID.
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
@@ -266,11 +268,11 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
 			- MergeFields: An optional `string` `slice`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten.
-			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitemptyupdate` tags. This can be useful when a field must be set to its zero value only on certain updates. If left empty, all fields will honour the two tags.
+			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_update` tags. This can be useful when a field must be set to its zero value only on certain updates. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
 	- ***Important***: 
-		- If neither `omitempty`, nor `omitemptyupdate` tags have been used, non-specified field values in the passed in data will be set to Go's default values, thus updating all document fields. To prevent that behaviour, please use one of the two tags. 
+		- If neither `omitempty`, nor `omitempty_update` tags have been used, non-specified field values in the passed in data will be set to Go's default values, thus updating all document fields. To prevent that behaviour, please use one of the two tags. 
 		- If a document with the specified ID does not exist, Firestore will create one with the specified fields, so it's worth checking whether the doc exists before using the method.
 ```go
 user := User{
@@ -322,11 +324,11 @@ fmt.Println("Success") // only the address.Line1 field will be updated
 		effect.
 			- SkipRequired: A `bool` which when `false`, means the `required` tag will not be ignored (i.e. the `required` check is not skipped). Default value is `true`.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
-			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitemptyupdate` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
+			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_validate` tags. This can be useful when a field must be set to its zero value only on certain method calls. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation.
 	- ***Important***: 
-		- If neither `omitempty`, nor `omitemptyupdate` tags have been used, non-specified field values in the passed in data will be set to Go's default values. 
+		- If neither `omitempty`, nor `omitempty_validate` tags have been used, non-specified field values in the passed in data will be set to Go's default values. 
 ```go
 user := User{
 	Email: "HELLO@BOBBYDONEV.COM",
@@ -534,7 +536,7 @@ newOptions := options.SkipRequired()
 ```go
 newOptions := options.UnskipRequired()
 ```
-- `AllowEmptyFields` - Returns a new `Options` instance that allows to specify which field paths should ignore the "omitempty" and "omitemptyupdate" tags. This can be useful when zero values are needed only during a specific method call. If left empty, those tags will be honoured for all fields.
+- `AllowEmptyFields` - Returns a new `Options` instance that allows to specify which field paths should ignore the "omitempty" tags. This can be useful when zero values are needed only during a specific method call. If left empty, those tags will be honoured for all fields.
 	- *Expects*:
 		- path: A varying number of `string` values (using dot separation) used to select field paths.
 	- *Returns*:
