@@ -167,12 +167,7 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 	options := validationOpts{
 		method:             method,
 		skipValidation:     false,
-		skipRequired:       false,
 		emptyFieldsAllowed: make([]string, 0),
-	}
-
-	if method != create {
-		options.skipRequired = true
 	}
 
 	if len(opts) == 0 {
@@ -184,16 +179,6 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 
 	if passedOpts.skipValidation {
 		options.skipValidation = true
-	}
-
-	if method != create {
-		if passedOpts.unskipRequired {
-			options.skipRequired = false
-		}
-	} else {
-		if passedOpts.skipRequired {
-			options.skipRequired = true
-		}
 	}
 
 	if len(passedOpts.allowEmptyFields) > 0 {

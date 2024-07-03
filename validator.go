@@ -144,11 +144,6 @@ func (v *validator) validateFields(
 				continue
 			}
 
-			// skip "required" rule depending on the passed in options
-			if rule == "required" && opts.skipRequired {
-				continue
-			}
-
 			fe := &fieldError{
 				code:        "",
 				tag:         rule,
@@ -186,7 +181,8 @@ func (v *validator) validateFields(
 				}
 			} else {
 				// skip rules (apart from "required") if value is zero
-				if rule != "required" && !hasValue(fieldValue) {
+				requiredMethodTag := fmt.Sprintf("required_%s", opts.method)
+				if rule != "required" && rule != requiredMethodTag && !hasValue(fieldValue) {
 					continue
 				}
 
@@ -217,7 +213,11 @@ func (v *validator) validateFields(
 
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
-			newStruct, err := v.validateFields(reflectedStruct{fieldValue.Type(), fieldValue}, opts, fieldPath)
+			newStruct, err := v.validateFields(
+				reflectedStruct{fieldValue.Type(), fieldValue},
+				opts,
+				fieldPath,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +233,11 @@ func (v *validator) validateFields(
 				key := iter.Key()
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts, fieldPath)
+					newVal, err := v.validateFields(
+						reflectedStruct{val.Type(), val},
+						opts,
+						fieldPath,
+					)
 					if err != nil {
 						return nil, err
 					}
@@ -254,7 +258,11 @@ func (v *validator) validateFields(
 				val := fieldValue.Index(idx)
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(reflectedStruct{val.Type(), val}, opts, fieldPath)
+					newVal, err := v.validateFields(
+						reflectedStruct{val.Type(), val},
+						opts,
+						fieldPath,
+					)
 					if err != nil {
 						return nil, err
 					}

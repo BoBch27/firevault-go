@@ -13,7 +13,6 @@ const (
 type validationOpts struct {
 	method             methodType
 	skipValidation     bool
-	skipRequired       bool
 	emptyFieldsAllowed []string
 }
 
@@ -25,11 +24,6 @@ type validationOpts struct {
 type Options struct {
 	// Skip all validations. Default is "false".
 	skipValidation bool
-	// Skip the "required" tag during creation method.
-	skipRequired bool
-	// Honour the "required" tag during validation and
-	// updating methods.
-	unskipRequired bool
 	// Specify which fields (using "dot notation") should ignore
 	// the "omitempty" and "omitemptyupdate" tags.
 	//
@@ -67,24 +61,6 @@ func NewOptions() Options {
 // "ignore" tag will still be honoured.
 func (o Options) SkipValidation() Options {
 	o.skipValidation = true
-	return o
-}
-
-// Ignore the "required" tag during validation.
-//
-// Only useful during creation method, as
-// the default behaviour is to not skip it.
-func (o Options) SkipRequired() Options {
-	o.skipRequired = true
-	return o
-}
-
-// Honour the "required" tag during validation.
-//
-// Only useful during validation and updating methods,
-// as the default behaviour is to skip it.
-func (o Options) UnskipRequired() Options {
-	o.unskipRequired = true
 	return o
 }
 

@@ -8,10 +8,13 @@ import (
 )
 
 var builtInValidators = map[string]ValidationFn{
-	"required": validateRequired,
-	"email":    validateEmail,
-	"max":      validateMax,
-	"min":      validateMin,
+	"required":          validateRequired,
+	"required_create":   validateRequired,
+	"required_update":   validateRequired,
+	"required_validate": validateRequired,
+	"email":             validateEmail,
+	"max":               validateMax,
+	"min":               validateMin,
 }
 
 // validates if field's value is not the default static value
