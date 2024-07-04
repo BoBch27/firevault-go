@@ -120,14 +120,15 @@ Firevault validates fields' values based on the defined rules. There are built-i
 - To define a custom validation, use the `connection`'s `RegisterValidation` method.
 	- *Expects*:
 		- name: A `string` defining the validation name
-		- func: A function of type `ValidationFn`. The passed in function accepts two parameters. 
-			- field: A `reflect.Value` of the field.
-			- param: A `string` which will be validated against.
-	- *Returns*:
-		- result: A `bool` which returns `true` if check has passed, and `false` if it hasn't.
+		- func: A function of type `ValidationFn`. The passed in function accepts two parameters.
+			- *Expects*:
+				- field: A `reflect.Value` of the field.
+				- param: A `string` which will be validated against.
+			- *Returns*:
+				- result: A `bool` which returns `true` if check has passed, and `false` if it hasn't.
 
 ```go
-connection.RegisterValidation("isUpper", func(fieldValue reflect.Value, _ string) bool {
+connection.RegisterValidation("is_upper", func(fieldValue reflect.Value, _ string) bool {
 	if fieldValue.Kind() != reflect.String {
 		return false
 	}
@@ -141,7 +142,7 @@ You can then chain the tag like a normal one.
 
 ```go
 type User struct {
-	Name string `firevault:"name,required,isUpper,omitempty"`
+	Name string `firevault:"name,required,is_upper,omitempty"`
 }
 ```
 
@@ -152,23 +153,23 @@ Firevault also supports rules that transform the field's value. To use them, it'
 - To define a transformation, use the `connection`'s `RegisterTransformation` method.
 	- *Expects*:
 		- name: A `string` defining the validation name
-		- func: A function of type `TransformationFn`. The passed in function accepts one parameter. 
-			- field: A `reflect.Value` of the field.
-	- *Returns*:
-		- newVal: An `interface{}` with the new value. 
-		- error: An `error` in case something goes wrong during the transformation.
+		- func: A function of type `TransformationFn`. The passed in function accepts one parameter.
+			- *Expects*: 
+				- field: A `reflect.Value` of the field.
+			- *Returns*:
+				- newVal: An `interface{}` with the new value.
 
 ```go
-connection.RegisterTransformation("toLower", func toUpper(fieldValue reflect.Value) (interface{}, error) {
+connection.RegisterTransformation("to_lower", func(fieldValue reflect.Value) interface{} {
 	if fieldValue.Kind() != reflect.String {
-		return fieldValue.Interface(), nil
+		return fieldValue.Interface()
 	}
 
 	if fieldValue.String() != "" {
-		return strings.ToLower(fieldValue.String()), nil
+		return strings.ToLower(fieldValue.String())
 	}
 
-	return fieldValue.String(), nil
+	return fieldValue.String()
 })
 ```
 
@@ -178,7 +179,7 @@ You can then chain the tag like a normal one, but don't forget to use the `trans
 
 ```go
 type User struct {
-	Email string `firevault:"email,required,email,transform=toLower,omitempty"`
+	Email string `firevault:"email,required,email,transform=to_lower,omitempty"`
 }
 ```
 
