@@ -30,14 +30,14 @@ type Document[T interface{}] struct {
 // A Firevault Collection allows for the fetching and
 // modifying (with validation) of documents in a
 // Firestore Collection.
-func NewCollection[T interface{}](connection *Connection, name string) (*Collection[T], error) {
-	if name == "" {
-		return nil, errors.New("firevault: collection name cannot be empty")
+func NewCollection[T interface{}](connection *Connection, path string) (*Collection[T], error) {
+	if path == "" {
+		return nil, errors.New("firevault: collection path cannot be empty")
 	}
 
 	collection := &Collection[T]{
 		connection,
-		connection.client.Collection(name),
+		connection.client.Collection(path),
 	}
 
 	return collection, nil
