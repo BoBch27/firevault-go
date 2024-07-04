@@ -15,7 +15,7 @@ type validator struct {
 
 type ValidationFn func(reflect.Value, string) bool
 
-type TransformationFn func(reflect.Value) (interface{}, error)
+type TransformationFn func(reflect.Value) interface{}
 
 type reflectedStruct struct {
 	types  reflect.Type
@@ -164,11 +164,7 @@ func (v *validator) validateFields(
 				transName := strings.TrimPrefix(rule, "transform=")
 
 				if transformation, ok := v.transformations[transName]; ok {
-					newValue, err := transformation(fieldValue)
-					if err != nil {
-						fe.code = "failed-transformation"
-						return nil, fe
-					}
+					newValue := transformation(fieldValue)
 
 					// check if rule returned a new value and assign it
 					if newValue != nil {
