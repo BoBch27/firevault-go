@@ -41,7 +41,7 @@ func validateEmail(fieldValue reflect.Value, _ string) bool {
 // validates if field's value is less than or equal to param's value
 func validateMax(fieldValue reflect.Value, param string) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a max param - %T", fieldValue))
+		panic(fmt.Sprintf("firevault: provide a max param - %T", fieldValue.Interface()))
 	}
 
 	switch fieldValue.Kind() {
@@ -70,7 +70,7 @@ func validateMax(fieldValue reflect.Value, param string) bool {
 // validates if field's value is greater than or equal to param's value
 func validateMin(fieldValue reflect.Value, param string) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a min param - %T", fieldValue))
+		panic(fmt.Sprintf("firevault: provide a min param - %T", fieldValue.Interface()))
 	}
 
 	switch fieldValue.Kind() {
