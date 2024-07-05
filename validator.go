@@ -1,6 +1,7 @@
 package firevault
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -13,9 +14,9 @@ type validator struct {
 	transformations map[string]TransformationFn
 }
 
-type ValidationFn func(reflect.Value, string) bool
+type ValidationFn func(context.Context, reflect.Value, string) bool
 
-type TransformationFn func(reflect.Value) interface{}
+type TransformationFn func(context.Context, reflect.Value) interface{}
 
 type reflectedStruct struct {
 	types  reflect.Type
@@ -60,7 +61,11 @@ func (v *validator) registerTransformation(name string, transformation Transform
 	return nil
 }
 
-func (v *validator) validate(data interface{}, opts validationOpts) (map[string]interface{}, error) {
+func (v *validator) validate(
+	ctx context.Context,
+	data interface{},
+	opts validationOpts,
+) (map[string]interface{}, error) {
 	rs := reflectedStruct{reflect.TypeOf(data), reflect.ValueOf(data)}
 
 	if rs.values.Kind() != reflect.Pointer && rs.values.Kind() != reflect.Ptr {
@@ -74,11 +79,12 @@ func (v *validator) validate(data interface{}, opts validationOpts) (map[string]
 		return nil, errors.New("firevault: data must be a pointer to a struct")
 	}
 
-	dataMap, err := v.validateFields(rs, opts, "")
+	dataMap, err := v.validateFields(ctx, rs, opts, "")
 	return dataMap, err
 }
 
 func (v *validator) validateFields(
+	ctx context.Context,
 	rs reflectedStruct,
 	opts validationOpts,
 	path string,
@@ -164,7 +170,7 @@ func (v *validator) validateFields(
 				transName := strings.TrimPrefix(rule, "transform=")
 
 				if transformation, ok := v.transformations[transName]; ok {
-					newValue := transformation(fieldValue)
+					newValue := transformation(ctx, fieldValue)
 
 					// check if rule returned a new value and assign it
 					if newValue != nil {
@@ -191,7 +197,7 @@ func (v *validator) validateFields(
 				}
 
 				if validation, ok := v.validations[rule]; ok {
-					ok := validation(fieldValue, param)
+					ok := validation(ctx, fieldValue, param)
 					if !ok {
 						fe.code = "failed-validation"
 						fe.param = param
@@ -210,6 +216,7 @@ func (v *validator) validateFields(
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
 			newStruct, err := v.validateFields(
+				ctx,
 				reflectedStruct{fieldValue.Type(), fieldValue},
 				opts,
 				fieldPath,
@@ -230,6 +237,7 @@ func (v *validator) validateFields(
 
 				if val.Kind() == reflect.Struct {
 					newVal, err := v.validateFields(
+						ctx,
 						reflectedStruct{val.Type(), val},
 						opts,
 						fieldPath,
@@ -255,6 +263,7 @@ func (v *validator) validateFields(
 
 				if val.Kind() == reflect.Struct {
 					newVal, err := v.validateFields(
+						ctx,
 						reflectedStruct{val.Type(), val},
 						opts,
 						fieldPath,

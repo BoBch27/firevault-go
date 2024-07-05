@@ -44,10 +44,10 @@ func NewCollection[T interface{}](connection *Connection, path string) (*Collect
 }
 
 // Validate provided data.
-func (c *Collection[T]) Validate(data *T, opts ...Options) error {
+func (c *Collection[T]) Validate(ctx context.Context, data *T, opts ...Options) error {
 	valOptions, _, _ := c.parseOptions(validate, opts...)
 
-	_, err := c.connection.validator.validate(data, valOptions)
+	_, err := c.connection.validator.validate(ctx, data, valOptions)
 	return err
 }
 
@@ -55,7 +55,7 @@ func (c *Collection[T]) Validate(data *T, opts ...Options) error {
 func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...Options) (string, error) {
 	valOptions, id, _ := c.parseOptions(create, opts...)
 
-	dataMap, err := c.connection.validator.validate(data, valOptions)
+	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...Options) (s
 func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts ...Options) error {
 	valOptions, _, mergeFields := c.parseOptions(update, opts...)
 
-	dataMap, err := c.connection.validator.validate(data, valOptions)
+	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
 	if err != nil {
 		return err
 	}
