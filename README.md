@@ -123,7 +123,8 @@ Firevault validates fields' values based on the defined rules. There are built-i
 		- func: A function of type `ValidationFn`. The passed in function accepts two parameters.
 			- *Expects*:
 				- ctx: A context.
-				- field: A `reflect.Value` of the field.
+				- path: A `string` which contains the field's path (using dot-separation).
+				- value: A `reflect.Value` of the field.
 				- param: A `string` which will be validated against.
 			- *Returns*:
 				- result: A `bool` which returns `true` if check has passed, and `false` if it hasn't.
@@ -131,12 +132,12 @@ Firevault validates fields' values based on the defined rules. There are built-i
 ```go
 connection.RegisterValidation(
 	"is_upper", 
-	func(_ context.Context, fieldValue reflect.Value, _ string) bool {
-		if fieldValue.Kind() != reflect.String {
+	func(_ context.Context, _ string, value reflect.Value, _ string) bool {
+		if value.Kind() != reflect.String {
 			return false
 		}
 
-		s := fieldValue.String()
+		s := value.String()
 		return s == strings.toUpper(s)
 	},
 )
@@ -160,23 +161,24 @@ Firevault also supports rules that transform the field's value. To use them, it'
 		- func: A function of type `TransformationFn`. The passed in function accepts one parameter.
 			- *Expects*: 
 				- ctx: A context.
-				- field: A `reflect.Value` of the field.
+				- path: A `string` which contains the field's path (using dot-separation).
+				- value: A `reflect.Value` of the field.
 			- *Returns*:
-				- newVal: An `interface{}` with the new value.
+				- result: An `interface{}` with the new value.
 
 ```go
 connection.RegisterTransformation(
 	"to_lower", 
-	func(_ context.Context, fieldValue reflect.Value) interface{} {
-		if fieldValue.Kind() != reflect.String {
-			return fieldValue.Interface()
+	func(_ context.Context, _ string, value reflect.Value) interface{} {
+		if value.Kind() != reflect.String {
+			return value.Interface()
 		}
 
-		if fieldValue.String() != "" {
-			return strings.ToLower(fieldValue.String())
+		if value.String() != "" {
+			return strings.ToLower(value.String())
 		}
 
-		return fieldValue.String()
+		return value.String()
 	},
 )
 ```
