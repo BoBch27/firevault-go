@@ -122,20 +122,24 @@ Firevault validates fields' values based on the defined rules. There are built-i
 		- name: A `string` defining the validation name
 		- func: A function of type `ValidationFn`. The passed in function accepts two parameters.
 			- *Expects*:
+				- ctx: A context.
 				- field: A `reflect.Value` of the field.
 				- param: A `string` which will be validated against.
 			- *Returns*:
 				- result: A `bool` which returns `true` if check has passed, and `false` if it hasn't.
 
 ```go
-connection.RegisterValidation("is_upper", func(fieldValue reflect.Value, _ string) bool {
-	if fieldValue.Kind() != reflect.String {
-		return false
-	}
+connection.RegisterValidation(
+	"is_upper", 
+	func(_ context.Context, fieldValue reflect.Value, _ string) bool {
+		if fieldValue.Kind() != reflect.String {
+			return false
+		}
 
-	s := fieldValue.String()
-	return s == strings.toUpper(s)
-})
+		s := fieldValue.String()
+		return s == strings.toUpper(s)
+	},
+)
 ```
 
 You can then chain the tag like a normal one.
@@ -155,22 +159,26 @@ Firevault also supports rules that transform the field's value. To use them, it'
 		- name: A `string` defining the validation name
 		- func: A function of type `TransformationFn`. The passed in function accepts one parameter.
 			- *Expects*: 
+				- ctx: A context.
 				- field: A `reflect.Value` of the field.
 			- *Returns*:
 				- newVal: An `interface{}` with the new value.
 
 ```go
-connection.RegisterTransformation("to_lower", func(fieldValue reflect.Value) interface{} {
-	if fieldValue.Kind() != reflect.String {
-		return fieldValue.Interface()
-	}
+connection.RegisterTransformation(
+	"to_lower", 
+	func(_ context.Context, fieldValue reflect.Value) interface{} {
+		if fieldValue.Kind() != reflect.String {
+			return fieldValue.Interface()
+		}
 
-	if fieldValue.String() != "" {
-		return strings.ToLower(fieldValue.String())
-	}
+		if fieldValue.String() != "" {
+			return strings.ToLower(fieldValue.String())
+		}
 
-	return fieldValue.String()
-})
+		return fieldValue.String()
+	},
+)
 ```
 
 You can then chain the tag like a normal one, but don't forget to use the `transform=` prefix.
@@ -321,6 +329,7 @@ fmt.Println("Success") // only the address.Line1 field will be updated
 ```
 - `Validate` - A method which validates passed in data. 
 	- *Expects*:
+		- ctx: A context.
 		- data: A `pointer` of a `struct` with populated fields which will be validated.
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect.
@@ -334,7 +343,7 @@ fmt.Println("Success") // only the address.Line1 field will be updated
 user := User{
 	Email: "HELLO@BOBBYDONEV.COM",
 }
-err := collection.Validate(&user)
+err := collection.Validate(ctx, &user)
 if err != nil {
 	fmt.Println(err)
 } 
