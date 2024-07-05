@@ -29,20 +29,25 @@ func hasValue(fieldValue reflect.Value) bool {
 }
 
 // validates if field is zero
-func validateRequired(_ context.Context, fieldValue reflect.Value, _ string) bool {
+func validateRequired(_ context.Context, _ string, fieldValue reflect.Value, _ string) bool {
 	return hasValue(fieldValue)
 }
 
 // validates if field is a valid email address
-func validateEmail(_ context.Context, fieldValue reflect.Value, _ string) bool {
+func validateEmail(_ context.Context, _ string, fieldValue reflect.Value, _ string) bool {
 	emailRegex := regexp.MustCompile("^(?:(?:(?:(?:[a-zA-Z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])+(?:\\.([a-zA-Z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])+)*)|(?:(?:\\x22)(?:(?:(?:(?:\\x20|\\x09)*(?:\\x0d\\x0a))?(?:\\x20|\\x09)+)?(?:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]|\\x21|[\\x23-\\x5b]|[\\x5d-\\x7e]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[\\x01-\\x09\\x0b\\x0c\\x0d-\\x7f]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}]))))*(?:(?:(?:\\x20|\\x09)*(?:\\x0d\\x0a))?(\\x20|\\x09)+)?(?:\\x22))))@(?:(?:(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])(?:[a-zA-Z]|\\d|-|\\.|~|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])*(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])))\\.)+(?:(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])(?:[a-zA-Z]|\\d|-|\\.|~|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])*(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])))\\.?$")
 	return emailRegex.MatchString(fieldValue.String())
 }
 
 // validates if field's value is less than or equal to param's value
-func validateMax(_ context.Context, fieldValue reflect.Value, param string) bool {
+func validateMax(
+	_ context.Context,
+	fieldPath string,
+	fieldValue reflect.Value,
+	param string,
+) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a max param - %T", fieldValue.Interface()))
+		panic(fmt.Sprintf("firevault: provide a max param - %T", fieldPath))
 	}
 
 	switch fieldValue.Kind() {
@@ -65,13 +70,18 @@ func validateMax(_ context.Context, fieldValue reflect.Value, param string) bool
 		}
 	}
 
-	panic(fmt.Sprintf("firevault: bad field type - %T", fieldValue.Interface()))
+	panic(fmt.Sprintf("firevault: bad field type - %T", fieldPath))
 }
 
 // validates if field's value is greater than or equal to param's value
-func validateMin(_ context.Context, fieldValue reflect.Value, param string) bool {
+func validateMin(
+	_ context.Context,
+	fieldPath string,
+	fieldValue reflect.Value,
+	param string,
+) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a min param - %T", fieldValue.Interface()))
+		panic(fmt.Sprintf("firevault: provide a min param - %T", fieldPath))
 	}
 
 	switch fieldValue.Kind() {
@@ -94,5 +104,5 @@ func validateMin(_ context.Context, fieldValue reflect.Value, param string) bool
 		}
 	}
 
-	panic(fmt.Sprintf("firevault: bad field type - %T", fieldValue.Interface()))
+	panic(fmt.Sprintf("firevault: bad field type - %T", fieldPath))
 }
