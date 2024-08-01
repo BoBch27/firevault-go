@@ -1,6 +1,7 @@
 package firevault
 
 import (
+	"errors"
 	"slices"
 	"strconv"
 	"time"
@@ -10,7 +11,7 @@ import (
 func asInt(param string) (int64, error) {
 	i, err := strconv.ParseInt(param, 0, 64)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("firevault: " + err.Error())
 	}
 
 	return i, nil
@@ -20,7 +21,7 @@ func asInt(param string) (int64, error) {
 func asUint(param string) (uint64, error) {
 	u, err := strconv.ParseUint(param, 0, 64)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("firevault: " + err.Error())
 	}
 
 	return u, nil
@@ -30,7 +31,7 @@ func asUint(param string) (uint64, error) {
 func asFloat(param string) (float64, error) {
 	f, err := strconv.ParseFloat(param, 32)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("firevault: " + err.Error())
 	}
 
 	return f, nil
@@ -40,7 +41,7 @@ func asFloat(param string) (float64, error) {
 func asTime(param string) (time.Time, error) {
 	t, err := time.Parse(param, param)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, errors.New("firevault: " + err.Error())
 	}
 
 	return t, nil
