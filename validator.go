@@ -37,7 +37,7 @@ func newValidator() *validator {
 
 func (v *validator) registerValidation(name string, validation ValidationFn) error {
 	if len(name) == 0 {
-		return errors.New("firevault: validation function Name cannot be empty")
+		return errors.New("firevault: validation function name cannot be empty")
 	}
 
 	if validation == nil {
@@ -50,7 +50,7 @@ func (v *validator) registerValidation(name string, validation ValidationFn) err
 
 func (v *validator) registerTransformation(name string, transformation TransformationFn) error {
 	if len(name) == 0 {
-		return errors.New("firevault: transformation function Name cannot be empty")
+		return errors.New("firevault: transformation function name cannot be empty")
 	}
 
 	if transformation == nil {
@@ -107,13 +107,13 @@ func (v *validator) validateFields(
 		rules := v.parseTag(tag)
 
 		// get field path based on name tag and trim leading dot (if exists)
-		fieldPath := strings.TrimPrefix(fmt.Sprintf("%s.%s", path, rules[0]), ".")
+		fieldPath := path + "." + rules[0]
+		fieldPath = strings.TrimPrefix(fieldPath, ".")
 
 		// skip validation if value is zero and an omitempty tag is present
 		// unless tags are skipped using options
-		omitEmptyMethodTag := fmt.Sprintf("omitempty_%s", opts.method)
-		shouldOmitEmpty := slices.Contains(rules, "omitempty") ||
-			slices.Contains(rules, omitEmptyMethodTag)
+		omitEmptyMethodTag := string("omitempty_" + opts.method)
+		shouldOmitEmpty := slices.Contains(rules, "omitempty") || slices.Contains(rules, omitEmptyMethodTag)
 
 		if shouldOmitEmpty {
 			if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
@@ -125,9 +125,9 @@ func (v *validator) validateFields(
 
 		// remove omitempty tags from rules, so no validation is attempted
 		rules = delSliceItem(rules, "omitempty")
-		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", create))
-		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", update))
-		rules = delSliceItem(rules, fmt.Sprintf("omitempty_%s", validate))
+		rules = delSliceItem(rules, string("omitempty_"+create))
+		rules = delSliceItem(rules, string("omitempty_"+update))
+		rules = delSliceItem(rules, string("omitempty_"+validate))
 
 		// get pointer value, only if it's not nil
 		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {
@@ -183,7 +183,7 @@ func (v *validator) validateFields(
 				}
 			} else {
 				// skip rules (apart from "required") if value is zero
-				requiredMethodTag := fmt.Sprintf("required_%s", opts.method)
+				requiredMethodTag := string("required_" + opts.method)
 				if rule != "required" && rule != requiredMethodTag && !hasValue(fieldValue) {
 					continue
 				}

@@ -2,7 +2,6 @@ package firevault
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"regexp"
 	"time"
@@ -47,7 +46,7 @@ func validateMax(
 	param string,
 ) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a max param - %T", fieldPath))
+		panic("firevault: provide a max param - " + fieldPath)
 	}
 
 	switch fieldValue.Kind() {
@@ -70,7 +69,7 @@ func validateMax(
 		}
 	}
 
-	panic(fmt.Sprintf("firevault: bad field type - %T", fieldPath))
+	panic("firevault: invalid field type - " + fieldPath)
 }
 
 // validates if field's value is greater than or equal to param's value
@@ -81,7 +80,7 @@ func validateMin(
 	param string,
 ) bool {
 	if param == "" {
-		panic(fmt.Sprintf("firevault: provide a min param - %T", fieldPath))
+		panic("firevault: provide a min param - " + fieldPath)
 	}
 
 	switch fieldValue.Kind() {
@@ -104,5 +103,5 @@ func validateMin(
 		}
 	}
 
-	panic(fmt.Sprintf("firevault: bad field type - %T", fieldPath))
+	panic("firevault: invalid field type - " + fieldPath)
 }
