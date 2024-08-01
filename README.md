@@ -243,7 +243,7 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 id, err := collection.Create(
 	ctx, 
 	&user, 
-	NewOptions().ID("custom-id"),
+	NewOptions().CustomID("custom-id"),
 )
 if err != nil {
 	fmt.Println(err)
