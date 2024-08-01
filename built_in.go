@@ -18,10 +18,20 @@ var builtInValidators = map[string]ValidationFn{
 	"min":               validateMin,
 }
 
+// validates if field is of supported type
+func isSupported(fieldValue reflect.Value) bool {
+	switch fieldValue.Kind() {
+	case reflect.Invalid, reflect.Chan, reflect.Func:
+		return false
+	}
+
+	return true
+}
+
 // validates if field's value is not the default static value
 func hasValue(fieldValue reflect.Value) bool {
 	switch fieldValue.Kind() {
-	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
+	case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface:
 		return !fieldValue.IsNil()
 	default:
 		return fieldValue.IsValid() && !fieldValue.IsZero()
@@ -51,7 +61,7 @@ func validateMax(
 	}
 
 	switch fieldValue.Kind() {
-	case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
+	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
 		i, err := asInt(param)
 		if err != nil {
 			return false, err
@@ -109,7 +119,7 @@ func validateMin(
 	}
 
 	switch fieldValue.Kind() {
-	case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
+	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
 		i, err := asInt(param)
 		if err != nil {
 			return false, err

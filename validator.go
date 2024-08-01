@@ -110,6 +110,11 @@ func (v *validator) validateFields(
 		fieldPath := path + "." + rules[0]
 		fieldPath = strings.TrimPrefix(fieldPath, ".")
 
+		// check if field is of supported type and return error if not
+		if !isSupported(fieldValue) {
+			return nil, errors.New("firevault: unsupported field type - " + fieldPath)
+		}
+
 		// skip validation if value is zero and an omitempty tag is present
 		// unless tags are skipped using options
 		omitEmptyMethodTag := string("omitempty_" + opts.method)
