@@ -2,6 +2,7 @@ package firevault
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"regexp"
 	"time"
@@ -28,14 +29,14 @@ func hasValue(fieldValue reflect.Value) bool {
 }
 
 // validates if field is zero
-func validateRequired(_ context.Context, _ string, fieldValue reflect.Value, _ string) bool {
-	return hasValue(fieldValue)
+func validateRequired(_ context.Context, _ string, fieldValue reflect.Value, _ string) (bool, error) {
+	return hasValue(fieldValue), nil
 }
 
 // validates if field is a valid email address
-func validateEmail(_ context.Context, _ string, fieldValue reflect.Value, _ string) bool {
+func validateEmail(_ context.Context, _ string, fieldValue reflect.Value, _ string) (bool, error) {
 	emailRegex := regexp.MustCompile("^(?:(?:(?:(?:[a-zA-Z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])+(?:\\.([a-zA-Z]|\\d|[!#\\$%&'\\*\\+\\-\\/=\\?\\^_`{\\|}~]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])+)*)|(?:(?:\\x22)(?:(?:(?:(?:\\x20|\\x09)*(?:\\x0d\\x0a))?(?:\\x20|\\x09)+)?(?:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]|\\x21|[\\x23-\\x5b]|[\\x5d-\\x7e]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[\\x01-\\x09\\x0b\\x0c\\x0d-\\x7f]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}]))))*(?:(?:(?:\\x20|\\x09)*(?:\\x0d\\x0a))?(\\x20|\\x09)+)?(?:\\x22))))@(?:(?:(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])(?:[a-zA-Z]|\\d|-|\\.|~|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])*(?:[a-zA-Z]|\\d|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])))\\.)+(?:(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])|(?:(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])(?:[a-zA-Z]|\\d|-|\\.|~|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])*(?:[a-zA-Z]|[\\x{00A0}-\\x{D7FF}\\x{F900}-\\x{FDCF}\\x{FDF0}-\\x{FFEF}])))\\.?$")
-	return emailRegex.MatchString(fieldValue.String())
+	return emailRegex.MatchString(fieldValue.String()), nil
 }
 
 // validates if field's value is less than or equal to param's value
@@ -44,32 +45,56 @@ func validateMax(
 	fieldPath string,
 	fieldValue reflect.Value,
 	param string,
-) bool {
+) (bool, error) {
 	if param == "" {
-		panic("firevault: provide a max param - " + fieldPath)
+		return false, errors.New("firevault: provide a max param - " + fieldPath)
 	}
 
 	switch fieldValue.Kind() {
 	case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
-		return fieldValue.Len() <= int(asInt(param))
+		i, err := asInt(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Len() <= int(i), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return fieldValue.Int() <= asInt(param)
+		i, err := asInt(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Int() <= i, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return fieldValue.Uint() <= asUint(param)
+		u, err := asUint(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Uint() <= u, nil
 	case reflect.Float32, reflect.Float64:
-		return fieldValue.Float() <= asFloat(param)
+		f, err := asFloat(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Float() <= f, nil
 	case reflect.Struct:
 		timeType := reflect.TypeOf(time.Time{})
 
 		if fieldValue.Type().ConvertibleTo(timeType) {
-			max := asTime(param)
+			max, err := asTime(param)
+			if err != nil {
+				return false, nil
+			}
+
 			t := fieldValue.Convert(timeType).Interface().(time.Time)
 
-			return t.After(max)
+			return t.After(max), nil
 		}
 	}
 
-	panic("firevault: invalid field type - " + fieldPath)
+	return false, errors.New("firevault: invalid field type - " + fieldPath)
 }
 
 // validates if field's value is greater than or equal to param's value
@@ -78,30 +103,54 @@ func validateMin(
 	fieldPath string,
 	fieldValue reflect.Value,
 	param string,
-) bool {
+) (bool, error) {
 	if param == "" {
-		panic("firevault: provide a min param - " + fieldPath)
+		return false, errors.New("firevault: provide a min param - " + fieldPath)
 	}
 
 	switch fieldValue.Kind() {
 	case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
-		return fieldValue.Len() >= int(asInt(param))
+		i, err := asInt(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Len() >= int(i), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return fieldValue.Int() >= asInt(param)
+		i, err := asInt(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Int() >= i, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return fieldValue.Uint() >= asUint(param)
+		u, err := asUint(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Uint() >= u, nil
 	case reflect.Float32, reflect.Float64:
-		return fieldValue.Float() >= asFloat(param)
+		f, err := asFloat(param)
+		if err != nil {
+			return false, err
+		}
+
+		return fieldValue.Float() >= f, nil
 	case reflect.Struct:
 		timeType := reflect.TypeOf(time.Time{})
 
 		if fieldValue.Type().ConvertibleTo(timeType) {
-			min := asTime(param)
+			min, err := asTime(param)
+			if err != nil {
+				return false, err
+			}
+
 			t := fieldValue.Convert(timeType).Interface().(time.Time)
 
-			return t.Before(min)
+			return t.Before(min), nil
 		}
 	}
 
-	panic("firevault: invalid field type - " + fieldPath)
+	return false, errors.New("firevault: invalid field type - " + fieldPath)
 }
