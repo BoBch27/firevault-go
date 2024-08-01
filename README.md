@@ -128,17 +128,18 @@ Firevault validates fields' values based on the defined rules. There are built-i
 				- param: A `string` which will be validated against.
 			- *Returns*:
 				- result: A `bool` which returns `true` if check has passed, and `false` if it hasn't.
+				- error: An `error` in case something went wrong during the check.
 
 ```go
 connection.RegisterValidation(
 	"is_upper", 
-	func(_ context.Context, _ string, value reflect.Value, _ string) bool {
+	func(_ context.Context, _ string, value reflect.Value, _ string) (bool, error) {
 		if value.Kind() != reflect.String {
-			return false
+			return false, nil
 		}
 
 		s := value.String()
-		return s == strings.toUpper(s)
+		return s == strings.toUpper(s), nil
 	},
 )
 ```
@@ -165,20 +166,21 @@ Firevault also supports rules that transform the field's value. To use them, it'
 				- value: A `reflect.Value` of the field.
 			- *Returns*:
 				- result: An `interface{}` with the new value.
+				- error: An `error` in case something went wrong during the transformation.
 
 ```go
 connection.RegisterTransformation(
 	"to_lower", 
-	func(_ context.Context, _ string, value reflect.Value) interface{} {
+	func(_ context.Context, path string, value reflect.Value) (interface{}, error) {
 		if value.Kind() != reflect.String {
-			return value.Interface()
+			return value.Interface(), errors.New(path + " must be a string")
 		}
 
 		if value.String() != "" {
-			return strings.ToLower(value.String())
+			return strings.ToLower(value.String()), nil
 		}
 
-		return value.String()
+		return value.String(), nil
 	},
 )
 ```
