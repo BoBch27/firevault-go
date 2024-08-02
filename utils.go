@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,12 @@ func asFloat(param string) (float64, error) {
 
 // asTime returns the parameter as a time.Time, or error if it can't convert
 func asTime(param string) (time.Time, error) {
-	t, err := time.Parse(param, param)
+	params := strings.Split(param, "|")
+	if len(params) < 2 {
+		return time.Time{}, errors.New("firevault: time param must be in the format 'layout|value'")
+	}
+
+	t, err := time.Parse(params[0], params[1])
 	if err != nil {
 		return time.Time{}, errors.New("firevault: " + err.Error())
 	}

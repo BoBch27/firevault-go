@@ -100,7 +100,7 @@ func validateMax(
 
 			t := fieldValue.Convert(timeType).Interface().(time.Time)
 
-			return t.After(max), nil
+			return t.Before(max), nil
 		}
 	}
 
@@ -158,7 +158,7 @@ func validateMin(
 
 			t := fieldValue.Convert(timeType).Interface().(time.Time)
 
-			return t.Before(min), nil
+			return t.After(min), nil
 		}
 	}
 

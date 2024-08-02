@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 )
 
 type validator struct {
@@ -226,17 +227,21 @@ func (v *validator) validateFields(
 
 		// If the field is a nested struct, recursively validate it and add to map
 		if fieldValue.Kind() == reflect.Struct {
-			newStruct, err := v.validateFields(
-				ctx,
-				reflectedStruct{fieldValue.Type(), fieldValue},
-				opts,
-				fieldPath,
-			)
-			if err != nil {
-				return nil, err
-			}
+			if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+				finalValue = fieldValue.Interface().(time.Time)
+			} else {
+				newStruct, err := v.validateFields(
+					ctx,
+					reflectedStruct{fieldValue.Type(), fieldValue},
+					opts,
+					fieldPath,
+				)
+				if err != nil {
+					return nil, err
+				}
 
-			finalValue = newStruct
+				finalValue = newStruct
+			}
 			// If the field is a nested struct in map, recursively validate it and add to map
 		} else if fieldValue.Kind() == reflect.Map {
 			iter := fieldValue.MapRange()
@@ -247,14 +252,22 @@ func (v *validator) validateFields(
 				key := iter.Key()
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(
-						ctx,
-						reflectedStruct{val.Type(), val},
-						opts,
-						fieldPath,
-					)
-					if err != nil {
-						return nil, err
+					var newVal interface{}
+					var err error
+
+					// Handle time.Time specifically
+					if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+						newVal = fieldValue.Interface().(time.Time)
+					} else {
+						newVal, err = v.validateFields(
+							ctx,
+							reflectedStruct{val.Type(), val},
+							opts,
+							fieldPath,
+						)
+						if err != nil {
+							return nil, err
+						}
 					}
 
 					newMap[key.String()] = newVal
@@ -273,14 +286,22 @@ func (v *validator) validateFields(
 				val := fieldValue.Index(idx)
 
 				if val.Kind() == reflect.Struct {
-					newVal, err := v.validateFields(
-						ctx,
-						reflectedStruct{val.Type(), val},
-						opts,
-						fieldPath,
-					)
-					if err != nil {
-						return nil, err
+					var newVal interface{}
+					var err error
+
+					// Handle time.Time specifically
+					if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+						newVal = fieldValue.Interface().(time.Time)
+					} else {
+						newVal, err = v.validateFields(
+							ctx,
+							reflectedStruct{val.Type(), val},
+							opts,
+							fieldPath,
+						)
+						if err != nil {
+							return nil, err
+						}
 					}
 
 					newSlice = append(newSlice, newVal)
