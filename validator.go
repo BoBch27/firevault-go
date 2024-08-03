@@ -223,100 +223,100 @@ func (v *validator) validateFields(
 			}
 		}
 
-		finalValue := fieldValue.Interface()
-
-		// If the field is a nested struct, recursively validate it and add to map
-		if fieldValue.Kind() == reflect.Struct {
-			if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
-				finalValue = fieldValue.Interface().(time.Time)
-			} else {
-				newStruct, err := v.validateFields(
-					ctx,
-					reflectedStruct{fieldValue.Type(), fieldValue},
-					fieldPath,
-					opts,
-				)
-				if err != nil {
-					return nil, err
-				}
-
-				finalValue = newStruct
-			}
-			// If the field is a nested struct in map, recursively validate it and add to map
-		} else if fieldValue.Kind() == reflect.Map {
-			iter := fieldValue.MapRange()
-			newMap := make(map[string]interface{})
-
-			for iter.Next() {
-				val := iter.Value()
-				key := iter.Key()
-
-				if val.Kind() == reflect.Struct {
-					var newVal interface{}
-					var err error
-
-					// Handle time.Time specifically
-					if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
-						newVal = fieldValue.Interface().(time.Time)
-					} else {
-						newVal, err = v.validateFields(
-							ctx,
-							reflectedStruct{val.Type(), val},
-							fieldPath,
-							opts,
-						)
-						if err != nil {
-							return nil, err
-						}
-					}
-
-					newMap[key.String()] = newVal
-				} else {
-					newMap[key.String()] = val.Interface()
-				}
-			}
-
-			finalValue = newMap
-
-			// If the field is a nested struct in slice, recursively validate it and add to map
-		} else if fieldValue.Kind() == reflect.Array || fieldValue.Kind() == reflect.Slice {
-			newSlice := make([]interface{}, 0)
-
-			for idx := 0; idx < fieldValue.Len(); idx++ {
-				val := fieldValue.Index(idx)
-
-				if val.Kind() == reflect.Struct {
-					var newVal interface{}
-					var err error
-
-					// Handle time.Time specifically
-					if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
-						newVal = fieldValue.Interface().(time.Time)
-					} else {
-						newVal, err = v.validateFields(
-							ctx,
-							reflectedStruct{val.Type(), val},
-							fieldPath,
-							opts,
-						)
-						if err != nil {
-							return nil, err
-						}
-					}
-
-					newSlice = append(newSlice, newVal)
-				} else {
-					newSlice = append(newSlice, val.Interface())
-				}
-			}
-
-			finalValue = newSlice
+		finalValue, err := v.processFinalValue(ctx, fieldValue, fieldPath, opts)
+		if err != nil {
+			return nil, err
 		}
 
 		dataMap[fieldName] = finalValue
 	}
 
 	return dataMap, nil
+}
+
+func (v *validator) processFinalValue(
+	ctx context.Context,
+	fieldValue reflect.Value,
+	fieldPath string,
+	opts validationOpts,
+) (interface{}, error) {
+	switch fieldValue.Kind() {
+	case reflect.Struct:
+		return v.processStructValue(ctx, fieldValue, fieldPath, opts)
+	case reflect.Map:
+		return v.processMapValue(ctx, fieldValue, fieldPath, opts)
+	case reflect.Array, reflect.Slice:
+		return v.processSliceValue(ctx, fieldValue, fieldPath, opts)
+	default:
+		return fieldValue.Interface(), nil
+	}
+}
+
+func (v *validator) processStructValue(
+	ctx context.Context,
+	fieldValue reflect.Value,
+	fieldPath string,
+	opts validationOpts,
+) (interface{}, error) {
+	if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+		return fieldValue.Interface().(time.Time), nil
+	}
+
+	return v.validateFields(
+		ctx,
+		reflectedStruct{fieldValue.Type(), fieldValue},
+		fieldPath,
+		opts,
+	)
+}
+
+func (v *validator) processMapValue(
+	ctx context.Context,
+	fieldValue reflect.Value,
+	fieldPath string,
+	opts validationOpts,
+) (interface{}, error) {
+	newMap := make(map[string]interface{})
+	iter := fieldValue.MapRange()
+
+	for iter.Next() {
+		key := iter.Key()
+		val := iter.Value()
+
+		newFieldPath := fmt.Sprintf("%s.%v", fieldPath, key.Interface())
+
+		processedValue, err := v.processFinalValue(ctx, val, newFieldPath, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		newMap[key.String()] = processedValue
+	}
+
+	return newMap, nil
+}
+
+func (v *validator) processSliceValue(
+	ctx context.Context,
+	fieldValue reflect.Value,
+	fieldPath string,
+	opts validationOpts,
+) (interface{}, error) {
+	newSlice := make([]interface{}, fieldValue.Len())
+
+	for i := 0; i < fieldValue.Len(); i++ {
+		val := fieldValue.Index(i)
+		newFieldPath := fmt.Sprintf("%s[%d]", fieldPath, i)
+
+		processedValue, err := v.processFinalValue(ctx, val, newFieldPath, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		newSlice[i] = processedValue
+	}
+
+	return newSlice, nil
 }
 
 func (v *validator) parseTag(tag string) []string {
