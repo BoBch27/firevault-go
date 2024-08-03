@@ -115,9 +115,10 @@ func (v *validator) validateFields(
 		// get dot-separated field path
 		fieldPath := v.getFieldPath(path, fieldName)
 
-		// check if field is of supported type and return error if not
-		if !isSupported(fieldValue) {
-			return nil, errors.New("firevault: unsupported field type - " + fieldPath)
+		// check if field is of supported type
+		err := v.validateFieldType(fieldValue, fieldPath)
+		if err != nil {
+			return nil, err
 		}
 
 		// skip validation if value is zero and an omitempty tag is present
@@ -245,6 +246,15 @@ func (v *validator) getFieldPath(path string, fieldName string) string {
 	}
 
 	return path + "." + fieldName
+}
+
+// check if field is of supported type and return error if not
+func (v *validator) validateFieldType(fieldValue reflect.Value, fieldPath string) error {
+	if !isSupported(fieldValue) {
+		return errors.New("firevault: unsupported field type - " + fieldPath)
+	}
+
+	return nil
 }
 
 func (v *validator) processFinalValue(
