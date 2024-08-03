@@ -136,84 +136,25 @@ func (v *validator) validateFields(
 			}
 		}
 
-		// validate field based on rules
-		for ruleIndex, rule := range rules {
-
-			// use first tag rule as new field name, rather than having a "name=" prefix
-			if ruleIndex == 0 && rule != "" {
-				fieldName = rule
-				continue
+		// apply rules (both transformations and validations)
+		// unless skipped using options
+		if !opts.skipValidation {
+			newFieldValue, err := v.applyRules(
+				ctx,
+				fieldValue,
+				fieldPath,
+				fieldName,
+				fieldType.Name,
+				rules,
+			)
+			if err != nil {
+				return nil, err
 			}
 
-			// skip validations depending on the passed in options
-			if opts.skipValidation {
-				continue
-			}
-
-			fe := &fieldError{
-				code:        "",
-				tag:         rule,
-				field:       fieldName,
-				structField: fieldType.Name,
-				value:       fieldValue.Interface(),
-				param:       "",
-				kind:        fieldValue.Kind(),
-				typ:         fieldValue.Type(),
-			}
-
-			if strings.HasPrefix(rule, "transform=") {
-				// skip rule if value is zero
-				if !hasValue(fieldValue) {
-					continue
-				}
-
-				transName := strings.TrimPrefix(rule, "transform=")
-
-				if transformation, ok := v.transformations[transName]; ok {
-					newValue, err := transformation(ctx, fieldPath, fieldValue)
-					if err != nil {
-						return nil, err
-					}
-
-					// check if rule returned a new value and assign it
-					if newValue != nil {
-						fieldValue = reflect.ValueOf(newValue)
-						rs.values.Field(i).Set(fieldValue)
-					}
-				} else {
-					fe.code = "unknown-transformation"
-					return nil, fe
-				}
-			} else {
-				// skip rules (apart from "required") if value is zero
-				requiredMethodTag := string("required_" + opts.method)
-				if rule != "required" && rule != requiredMethodTag && !hasValue(fieldValue) {
-					continue
-				}
-
-				// get param value if present
-				param := ""
-				params := strings.Split(rule, "=")
-				if len(params) > 1 {
-					param = params[1]
-					rule = params[0]
-				}
-
-				if validation, ok := v.validations[rule]; ok {
-					ok, err := validation(ctx, fieldPath, fieldValue, param)
-					if err != nil {
-						return nil, err
-					}
-					if !ok {
-						fe.code = "failed-validation"
-						fe.param = param
-						return nil, fe
-					}
-				} else {
-					fe.code = "unknown-validation"
-					fe.param = param
-					return nil, fe
-				}
+			// set original struct's field value if changed
+			if newFieldValue != fieldValue {
+				rs.values.Field(i).Set(newFieldValue)
+				fieldValue = newFieldValue
 			}
 		}
 
@@ -268,14 +209,82 @@ func (v *validator) shouldSkipField(
 func (v *validator) cleanRules(rules []string) []string {
 	cleanedRules := make([]string, 0, len(rules))
 
-	for _, rule := range rules {
-		if rule != "omitempty" && rule != string("omitempty_"+create) &&
+	for index, rule := range rules {
+		if index != 0 && rule != "omitempty" && rule != string("omitempty_"+create) &&
 			rule != string("omitempty_"+update) && rule != string("omitempty_"+validate) {
 			cleanedRules = append(cleanedRules, rule)
 		}
 	}
 
 	return cleanedRules
+}
+
+// validate field based on rules
+func (v *validator) applyRules(
+	ctx context.Context,
+	fieldValue reflect.Value,
+	fieldPath string,
+	fieldName string,
+	structFieldName string,
+	rules []string,
+) (reflect.Value, error) {
+	for _, rule := range rules {
+		// skip processing if the field is empty and it's not a required rule
+		if !hasValue(fieldValue) && !strings.HasPrefix(rule, "required") {
+			continue
+		}
+
+		fe := &fieldError{
+			code:        "",
+			tag:         rule,
+			field:       fieldName,
+			structField: structFieldName,
+			value:       fieldValue.Interface(),
+			param:       "",
+			kind:        fieldValue.Kind(),
+			typ:         fieldValue.Type(),
+		}
+
+		if strings.HasPrefix(rule, "transform=") {
+			transName := strings.TrimPrefix(rule, "transform=")
+
+			if transformation, ok := v.transformations[transName]; ok {
+				newValue, err := transformation(ctx, fieldPath, fieldValue)
+				if err != nil {
+					return reflect.Value{}, err
+				}
+
+				// check if rule returned a new value and assign it
+				if newValue != nil {
+					fieldValue = reflect.ValueOf(newValue)
+				}
+			} else {
+				fe.code = "unknown-transformation"
+				return reflect.Value{}, fe
+			}
+		} else {
+			// get param value if present
+			rule, param, _ := strings.Cut(rule, "=")
+
+			if validation, ok := v.validations[rule]; ok {
+				ok, err := validation(ctx, fieldPath, fieldValue, param)
+				if err != nil {
+					return reflect.Value{}, err
+				}
+				if !ok {
+					fe.code = "failed-validation"
+					fe.param = param
+					return reflect.Value{}, fe
+				}
+			} else {
+				fe.code = "unknown-validation"
+				fe.param = param
+				return reflect.Value{}, fe
+			}
+		}
+	}
+
+	return fieldValue, nil
 }
 
 func (v *validator) processFinalValue(
