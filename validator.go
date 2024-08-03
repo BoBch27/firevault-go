@@ -10,18 +10,17 @@ import (
 	"time"
 )
 
+// A ValidationFn is the function that's executed
+// during a validation.
+type ValidationFn func(ctx context.Context, path string, value reflect.Value, param string) (bool, error)
+
+// A TransformationFn is the function that's executed
+// during a transformation.
+type TransformationFn func(ctx context.Context, path string, value reflect.Value) (interface{}, error)
+
 type validator struct {
 	validations     map[string]ValidationFn
 	transformations map[string]TransformationFn
-}
-
-type ValidationFn func(ctx context.Context, path string, value reflect.Value, param string) (bool, error)
-
-type TransformationFn func(ctx context.Context, path string, value reflect.Value) (interface{}, error)
-
-type reflectedStruct struct {
-	types  reflect.Type
-	values reflect.Value
 }
 
 func newValidator() *validator {
@@ -36,6 +35,7 @@ func newValidator() *validator {
 	return validator
 }
 
+// register a validation
 func (v *validator) registerValidation(name string, validation ValidationFn) error {
 	if len(name) == 0 {
 		return errors.New("firevault: validation function name cannot be empty")
@@ -49,6 +49,7 @@ func (v *validator) registerValidation(name string, validation ValidationFn) err
 	return nil
 }
 
+// register a transformation
 func (v *validator) registerTransformation(name string, transformation TransformationFn) error {
 	if len(name) == 0 {
 		return errors.New("firevault: transformation function name cannot be empty")
@@ -62,6 +63,13 @@ func (v *validator) registerTransformation(name string, transformation Transform
 	return nil
 }
 
+// the reflected struct
+type reflectedStruct struct {
+	types  reflect.Type
+	values reflect.Value
+}
+
+// check if passed data is a pointer and reflect it if so
 func (v *validator) validate(
 	ctx context.Context,
 	data interface{},
@@ -84,6 +92,8 @@ func (v *validator) validate(
 	return dataMap, err
 }
 
+// loop through struct's fields and validate
+// based on provided tags and options
 func (v *validator) validateFields(
 	ctx context.Context,
 	rs reflectedStruct,
@@ -158,6 +168,7 @@ func (v *validator) validateFields(
 			}
 		}
 
+		// get the final value to be added to the data map
 		finalValue, err := v.processFinalValue(ctx, fieldValue, fieldPath, opts)
 		if err != nil {
 			return nil, err
@@ -287,6 +298,7 @@ func (v *validator) applyRules(
 	return fieldValue, nil
 }
 
+// get final field value based on field's type
 func (v *validator) processFinalValue(
 	ctx context.Context,
 	fieldValue reflect.Value,
@@ -305,12 +317,14 @@ func (v *validator) processFinalValue(
 	}
 }
 
+// get value if field is a struct
 func (v *validator) processStructValue(
 	ctx context.Context,
 	fieldValue reflect.Value,
 	fieldPath string,
 	opts validationOpts,
 ) (interface{}, error) {
+	// handle time.Time
 	if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
 		return fieldValue.Interface().(time.Time), nil
 	}
@@ -323,6 +337,7 @@ func (v *validator) processStructValue(
 	)
 }
 
+// get value if field is a map
 func (v *validator) processMapValue(
 	ctx context.Context,
 	fieldValue reflect.Value,
@@ -349,6 +364,7 @@ func (v *validator) processMapValue(
 	return newMap, nil
 }
 
+// get value if field is a slice/array
 func (v *validator) processSliceValue(
 	ctx context.Context,
 	fieldValue reflect.Value,
@@ -372,6 +388,7 @@ func (v *validator) processSliceValue(
 	return newSlice, nil
 }
 
+// parse rule tags
 func (v *validator) parseTag(tag string) []string {
 	rules := strings.Split(tag, ",")
 
