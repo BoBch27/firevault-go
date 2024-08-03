@@ -80,15 +80,15 @@ func (v *validator) validate(
 		return nil, errors.New("firevault: data must be a pointer to a struct")
 	}
 
-	dataMap, err := v.validateFields(ctx, rs, opts, "")
+	dataMap, err := v.validateFields(ctx, rs, "", opts)
 	return dataMap, err
 }
 
 func (v *validator) validateFields(
 	ctx context.Context,
 	rs reflectedStruct,
-	opts validationOpts,
 	path string,
+	opts validationOpts,
 ) (map[string]interface{}, error) {
 	// map which will hold all fields to pass to firestore
 	dataMap := make(map[string]interface{})
@@ -233,8 +233,8 @@ func (v *validator) validateFields(
 				newStruct, err := v.validateFields(
 					ctx,
 					reflectedStruct{fieldValue.Type(), fieldValue},
-					opts,
 					fieldPath,
+					opts,
 				)
 				if err != nil {
 					return nil, err
@@ -262,8 +262,8 @@ func (v *validator) validateFields(
 						newVal, err = v.validateFields(
 							ctx,
 							reflectedStruct{val.Type(), val},
-							opts,
 							fieldPath,
+							opts,
 						)
 						if err != nil {
 							return nil, err
@@ -296,8 +296,8 @@ func (v *validator) validateFields(
 						newVal, err = v.validateFields(
 							ctx,
 							reflectedStruct{val.Type(), val},
-							opts,
 							fieldPath,
+							opts,
 						)
 						if err != nil {
 							return nil, err
