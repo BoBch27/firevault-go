@@ -2,7 +2,6 @@ package firevault
 
 import (
 	"errors"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -51,14 +50,4 @@ func asTime(param string) (time.Time, error) {
 	}
 
 	return t, nil
-}
-
-// delSliceItem deletes an item from a slice
-func delSliceItem[T comparable](slice []T, item T) []T {
-	index := slices.Index(slice, item)
-	if index == -1 {
-		return slice
-	}
-
-	return slices.Delete(slice, index, index+1)
 }

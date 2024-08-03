@@ -121,24 +121,13 @@ func (v *validator) validateFields(
 			return nil, err
 		}
 
-		// skip validation if value is zero and an omitempty tag is present
-		// unless tags are skipped using options
-		omitEmptyMethodTag := string("omitempty_" + opts.method)
-		shouldOmitEmpty := slices.Contains(rules, "omitempty") || slices.Contains(rules, omitEmptyMethodTag)
-
-		if shouldOmitEmpty {
-			if !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
-				if !hasValue(fieldValue) {
-					continue
-				}
-			}
+		// check if field should be skipped based on provided tags
+		if v.shouldSkipField(fieldValue, fieldPath, rules, opts) {
+			continue
 		}
 
 		// remove omitempty tags from rules, so no validation is attempted
-		rules = delSliceItem(rules, "omitempty")
-		rules = delSliceItem(rules, string("omitempty_"+create))
-		rules = delSliceItem(rules, string("omitempty_"+update))
-		rules = delSliceItem(rules, string("omitempty_"+validate))
+		rules = v.cleanRules(rules)
 
 		// get pointer value, only if it's not nil
 		if fieldValue.Kind() == reflect.Pointer || fieldValue.Kind() == reflect.Ptr {
@@ -255,6 +244,38 @@ func (v *validator) validateFieldType(fieldValue reflect.Value, fieldPath string
 	}
 
 	return nil
+}
+
+// skip field validation if value is zero and an omitempty tag is present
+// (unless tags are skipped using options)
+func (v *validator) shouldSkipField(
+	fieldValue reflect.Value,
+	fieldPath string,
+	rules []string,
+	opts validationOpts,
+) bool {
+	omitEmptyMethodTag := string("omitempty_" + opts.method)
+	shouldOmitEmpty := slices.Contains(rules, "omitempty") || slices.Contains(rules, omitEmptyMethodTag)
+
+	if shouldOmitEmpty && !slices.Contains(opts.emptyFieldsAllowed, fieldPath) {
+		return !hasValue(fieldValue)
+	}
+
+	return false
+}
+
+// remove omitempty tags from rules
+func (v *validator) cleanRules(rules []string) []string {
+	cleanedRules := make([]string, 0, len(rules))
+
+	for _, rule := range rules {
+		if rule != "omitempty" && rule != string("omitempty_"+create) &&
+			rule != string("omitempty_"+update) && rule != string("omitempty_"+validate) {
+			cleanedRules = append(cleanedRules, rule)
+		}
+	}
+
+	return cleanedRules
 }
 
 func (v *validator) processFinalValue(
