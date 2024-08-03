@@ -107,9 +107,13 @@ func (v *validator) validateFields(
 
 		rules := v.parseTag(tag)
 
-		// get field path based on name tag and trim leading dot (if exists)
-		fieldPath := path + "." + rules[0]
-		fieldPath = strings.TrimPrefix(fieldPath, ".")
+		// use first tag rule as new field name, if not empty
+		if rules[0] != "" {
+			fieldName = rules[0]
+		}
+
+		// get dot-separated field path
+		fieldPath := v.getFieldPath(path, fieldName)
 
 		// check if field is of supported type and return error if not
 		if !isSupported(fieldValue) {
@@ -232,6 +236,15 @@ func (v *validator) validateFields(
 	}
 
 	return dataMap, nil
+}
+
+// get dot-separated field path
+func (v *validator) getFieldPath(path string, fieldName string) string {
+	if path == "" {
+		return fieldName
+	}
+
+	return path + "." + fieldName
 }
 
 func (v *validator) processFinalValue(
