@@ -83,8 +83,8 @@ func (q Query) OrderBy(path string, direction Direction) Query {
 //
 // StartAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q Query) StartAt(value ...interface{}) Query {
-	q.startAt = value
+func (q Query) StartAt(values ...interface{}) Query {
+	q.startAt = values
 	return q
 }
 
@@ -93,8 +93,8 @@ func (q Query) StartAt(value ...interface{}) Query {
 //
 // StartAfter should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q Query) StartAfter(value ...interface{}) Query {
-	q.startAfter = value
+func (q Query) StartAfter(values ...interface{}) Query {
+	q.startAfter = values
 	return q
 }
 
@@ -103,8 +103,8 @@ func (q Query) StartAfter(value ...interface{}) Query {
 //
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q Query) EndBefore(value ...interface{}) Query {
-	q.endBefore = value
+func (q Query) EndBefore(values ...interface{}) Query {
+	q.endBefore = values
 	return q
 }
 
@@ -113,8 +113,8 @@ func (q Query) EndBefore(value ...interface{}) Query {
 //
 // EndAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
-func (q Query) EndAt(value ...interface{}) Query {
-	q.endAt = value
+func (q Query) EndAt(values ...interface{}) Query {
+	q.endAt = values
 	return q
 }
 
