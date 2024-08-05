@@ -1,5 +1,5 @@
 # Firevault
-Firevault is a [Firestore](https://cloud.google.com/firestore/) object modeling tool to make life easier for Go devs. Inspired by [Firevault.js](https://github.com/bobch27/firevault-js).
+Firevault is a [Firestore](https://cloud.google.com/firestore/) object modelling library to make life easier for Go devs.
 
 Installation
 ------------
@@ -480,7 +480,7 @@ newQuery := query.Where("name", "==", "Bobby Donev").Offset(1)
 ```
 - `StartAt` - Returns a new `Query` that specifies that results should start at the document with the given field values. Should be called with one field value for each OrderBy clause, in the order that they appear.
 	- *Expects*:
-		- value: A varying number of `interface{}` values used to filter out results.
+		- values: A varying number of `interface{}` values used to filter out results.
 	- *Returns*:
 		- A new `Query` instance.
 ```go
@@ -488,7 +488,7 @@ newQuery := query.Where("name", "==", "Bobby Donev").OrderBy("age", Asc).StartAt
 ```
 - `StartAfter` - Returns a new `Query` that specifies that results should start just after the document with the given field values. Should be called with one field value for each OrderBy clause, in the order that they appear.
 	- *Expects*:
-		- value: A varying number of `interface{}` values used to filter out results.
+		- values: A varying number of `interface{}` values used to filter out results.
 	- *Returns*:
 		- A new `Query` instance.
 ```go
@@ -496,7 +496,7 @@ newQuery := query.Where("name", "==", "Bobby Donev").OrderBy("age", Asc).StartAf
 ```
 - `EndBefore` - Returns a new `Query` that specifies that results should end just before the document with the given field values. Should be called with one field value for each OrderBy clause, in the order that they appear.
 	- *Expects*:
-		- value: A varying number of `interface{}` values used to filter out results.
+		- values: A varying number of `interface{}` values used to filter out results.
 	- *Returns*:
 		- A new `Query` instance.
 ```go
@@ -504,7 +504,7 @@ newQuery := query.Where("name", "==", "Bobby Donev").OrderBy("age", Asc).EndBefo
 ```
 - `EndAt` - Returns a new `Query` that specifies that results should end at the document with the given field values. Should be called with one field value for each OrderBy clause, in the order that they appear.
 	- *Expects*:
-		- value: A varying number of `interface{}` values used to filter out results.
+		- values: A varying number of `interface{}` values used to filter out results.
 	- *Returns*:
 		- A new `Query` instance.
 ```go
