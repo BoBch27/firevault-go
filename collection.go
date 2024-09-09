@@ -163,7 +163,10 @@ func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
 }
 
 // extract passed options
-func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (validationOpts, string, firestore.SetOption) {
+func (c *Collection[T]) parseOptions(
+	method methodType,
+	opts ...Options,
+) (validationOpts, string, firestore.SetOption) {
 	options := validationOpts{
 		method:             method,
 		skipValidation:     false,
@@ -199,7 +202,7 @@ func (c *Collection[T]) parseOptions(method methodType, opts ...Options) (valida
 	return options, passedOpts.id, firestore.MergeAll
 }
 
-// build a new query
+// build a new firestore query
 func (c *Collection[T]) buildQuery(query Query) firestore.Query {
 	newQuery := c.ref.Query
 

@@ -73,6 +73,13 @@ func (q Query) Where(path string, operator string, value interface{}) Query {
 // results are returned. A Query can have multiple OrderBy
 // specifications. It appends the specification to the list of
 // existing ones.
+//
+// The path argument can be a single field or a dot-separated
+// sequence of fields, and must not contain any of the runes
+// "˜*/[]".
+//
+// To order by document name, use the special field path
+// DocumentID.
 func (q Query) OrderBy(path string, direction Direction) Query {
 	q.orders = append(q.orders, order{path, direction})
 	return q
@@ -83,6 +90,13 @@ func (q Query) OrderBy(path string, direction Direction) Query {
 //
 // StartAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
+//
+// If an OrderBy call uses the special DocumentID field path,
+// the corresponding value should be the document ID relative
+// to the query's collection.
+//
+// Calling StartAt overrides a previous call to StartAt or
+// StartAfter.
 func (q Query) StartAt(values ...interface{}) Query {
 	q.startAt = values
 	return q
@@ -93,6 +107,13 @@ func (q Query) StartAt(values ...interface{}) Query {
 //
 // StartAfter should be called with one field value for each
 // OrderBy clause, in the order that they appear.
+//
+// If an OrderBy call uses the special DocumentID field path,
+// the corresponding value should be the document ID relative
+// to the query's collection.
+//
+// Calling StartAfter overrides a previous call to StartAt or
+// StartAfter.
 func (q Query) StartAfter(values ...interface{}) Query {
 	q.startAfter = values
 	return q
@@ -103,6 +124,13 @@ func (q Query) StartAfter(values ...interface{}) Query {
 //
 // EndBefore should be called with one field value for each
 // OrderBy clause, in the order that they appear.
+//
+// If an OrderBy call uses the special DocumentID field path,
+// the corresponding value should be the document ID relative
+// to the query's collection.
+//
+// Calling EndBefore overrides a previous call to EndAt or
+// EndBefore.
 func (q Query) EndBefore(values ...interface{}) Query {
 	q.endBefore = values
 	return q
@@ -113,27 +141,34 @@ func (q Query) EndBefore(values ...interface{}) Query {
 //
 // EndAt should be called with one field value for each
 // OrderBy clause, in the order that they appear.
+//
+// If an OrderBy call uses the special DocumentID field path,
+// the corresponding value should be the document ID relative
+// to the query's collection.
+//
+// Calling EndAt overrides a previous call to EndAt or
+// EndBefore.
 func (q Query) EndAt(values ...interface{}) Query {
 	q.endAt = values
 	return q
 }
 
 // Limit returns a new Query that specifies the maximum number of
-// first results to return.
+// first results to return. It must not be negative.
 func (q Query) Limit(num int) Query {
 	q.limit = num
 	return q
 }
 
 // LimitToLast returns a new Query that specifies the maximum number
-// of last results to return.
+// of last results to return. It must not be negative.
 func (q Query) LimitToLast(num int) Query {
 	q.limitToLast = num
 	return q
 }
 
 // Offset returns a new Query that specifies the number of
-// initial results to skip.
+// initial results to skip. It must not be negative.
 func (q Query) Offset(num int) Query {
 	q.offset = num
 	return q
