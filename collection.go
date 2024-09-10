@@ -94,20 +94,6 @@ func (c *Collection[T]) Update(ctx context.Context, query Query, data *T, opts .
 	})
 }
 
-// Update a Firestore document with provided ID and data
-// (after validation).
-func (c *Collection[T]) UpdateById(ctx context.Context, id string, data *T, opts ...Options) error {
-	valOptions, _, mergeFields := c.parseOptions(update, opts...)
-
-	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.ref.Doc(id).Set(ctx, dataMap, mergeFields)
-	return err
-}
-
 // Delete all Firestore documents which match provided Query.
 // The operation is not atomic.
 func (c *Collection[T]) Delete(ctx context.Context, query Query) error {
@@ -115,29 +101,6 @@ func (c *Collection[T]) Delete(ctx context.Context, query Query) error {
 		_, err := bw.Delete(c.ref.Doc(docID))
 		return err
 	})
-}
-
-// Delete a Firestore document with provided ID.
-func (c *Collection[T]) DeleteById(ctx context.Context, id string) error {
-	_, err := c.ref.Doc(id).Delete(ctx)
-	return err
-}
-
-// Find a Firestore document with provided ID.
-func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
-	var doc T
-
-	docSnap, err := c.ref.Doc(id).Get(ctx)
-	if err != nil {
-		return doc, err
-	}
-
-	err = docSnap.DataTo(&doc)
-	if err != nil {
-		return doc, err
-	}
-
-	return doc, err
 }
 
 // Find all Firestore documents which match provided Query.
