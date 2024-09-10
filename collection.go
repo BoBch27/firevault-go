@@ -142,35 +142,19 @@ func (c *Collection[T]) FindById(ctx context.Context, id string) (T, error) {
 
 // Find all Firestore documents which match provided Query.
 func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
-	builtQuery := c.buildQuery(query)
-	iter := builtQuery.Documents(ctx)
-
-	var docs []Document[T]
-
-	for {
-		docSnap, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		var doc T
-
-		err = docSnap.DataTo(&doc)
-		if err != nil {
-			return nil, err
-		}
-
-		docs = append(docs, Document[T]{docSnap.Ref.ID, doc})
+	if len(query.ids) > 0 {
+		return c.fetchDocsByID(ctx, query.ids)
 	}
 
-	return docs, nil
+	return c.fetchDocsByQuery(ctx, query)
 }
 
 // Find number of Firestore documents which match provided Query.
 func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
+	if len(query.ids) > 0 {
+		return int64(len(query.ids)), nil
+	}
+
 	builtQuery := c.buildQuery(query)
 	results, err := builtQuery.NewAggregationQuery().WithCount("all").Get(ctx)
 	if err != nil {
@@ -283,16 +267,24 @@ func (c *Collection[T]) bulkOperation(
 	var mu sync.Mutex
 	var errs []error
 
-	docs, err := c.Find(ctx, query)
-	if err != nil {
-		return err
+	docIDs := query.ids
+
+	if len(docIDs) == 0 {
+		docs, err := c.Find(ctx, query)
+		if err != nil {
+			return err
+		}
+
+		for _, doc := range docs {
+			docIDs = append(docIDs, doc.ID)
+		}
 	}
 
-	for _, doc := range docs {
-		err := operation(bulkWriter, doc.ID)
+	for _, docID := range docIDs {
+		err := operation(bulkWriter, docID)
 		if err != nil {
 			mu.Lock()
-			errs = append(errs, errors.New(err.Error()+" (docID: "+doc.ID+")"))
+			errs = append(errs, errors.New(err.Error()+" (docID: "+docID+")"))
 			mu.Unlock()
 		}
 	}
@@ -301,4 +293,70 @@ func (c *Collection[T]) bulkOperation(
 	bulkWriter.Flush()
 
 	return errors.Join(errs...)
+}
+
+// fetch documents based on provided ids
+func (c *Collection[T]) fetchDocsByID(ctx context.Context, ids []string) ([]Document[T], error) {
+	const batchSize = 100
+	var docRefs []*firestore.DocumentRef
+	var docs []Document[T]
+
+	for _, docID := range ids {
+		docRefs = append(docRefs, c.ref.Doc(docID))
+	}
+
+	for i := 0; i < len(docRefs); i += batchSize {
+		end := i + batchSize
+		if end > len(docRefs) {
+			end = len(docRefs)
+		}
+
+		batchRefs := docRefs[i:end]
+		snapshots, err := c.connection.client.GetAll(ctx, batchRefs)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, docSnap := range snapshots {
+			var doc T
+
+			err = docSnap.DataTo(&doc)
+			if err != nil {
+				return nil, err
+			}
+
+			docs = append(docs, Document[T]{docSnap.Ref.ID, doc})
+		}
+	}
+
+	return docs, nil
+}
+
+// fetch documents based on provided Query
+func (c *Collection[T]) fetchDocsByQuery(ctx context.Context, query Query) ([]Document[T], error) {
+	builtQuery := c.buildQuery(query)
+	iter := builtQuery.Documents(ctx)
+
+	var docs []Document[T]
+
+	for {
+		docSnap, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		var doc T
+
+		err = docSnap.DataTo(&doc)
+		if err != nil {
+			return nil, err
+		}
+
+		docs = append(docs, Document[T]{docSnap.Ref.ID, doc})
+	}
+
+	return docs, nil
 }

@@ -6,6 +6,7 @@ package firevault
 // Query values are immutable. Each Query method creates
 // a new Query - it does not modify the old.
 type Query struct {
+	ids         []string
 	filters     []filter
 	orders      []order
 	startAt     []interface{}
@@ -52,6 +53,23 @@ const DocumentID = "__name__"
 // a new Query - it does not modify the old.
 func NewQuery() Query {
 	return Query{}
+}
+
+// ID returns a new Query that exclusively filters the
+// set of results based on provided IDs.
+//
+// ID takes precedence over and completely overrides
+// any previous or subsequent calls to other Query
+// methods, including Where.
+//
+// If you need to filter by ID as well as other criteria,
+// use the Where method with the special DocumentID field,
+// instead of calling ID.
+//
+// Calling ID overrides a previous call to the method.
+func (q Query) ID(ids ...string) Query {
+	q.ids = ids
+	return q
 }
 
 // Where returns a new Query that filters the set of results.
