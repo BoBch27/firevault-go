@@ -112,6 +112,25 @@ func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], e
 	return c.fetchDocsByQuery(ctx, query)
 }
 
+// Find the first Firestore document which matches provided Query.
+func (c *Collection[T]) FindOne(ctx context.Context, query Query) (Document[T], error) {
+	if len(query.ids) > 0 {
+		docs, err := c.fetchDocsByID(ctx, query.ids[0:1])
+		if err != nil {
+			return Document[T]{}, err
+		}
+
+		return docs[0], nil
+	}
+
+	docs, err := c.fetchDocsByQuery(ctx, query.Limit(1))
+	if err != nil {
+		return Document[T]{}, err
+	}
+
+	return docs[0], nil
+}
+
 // Find number of Firestore documents which match provided Query.
 func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
 	if len(query.ids) > 0 {
