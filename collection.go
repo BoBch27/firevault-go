@@ -46,7 +46,7 @@ func Collection[T interface{}](connection *Connection, path string) *CollectionR
 	return &CollectionRef[T]{connection, collectionRef}
 }
 
-// Validate provided data.
+// Validate and transform provided data.
 func (c *CollectionRef[T]) Validate(ctx context.Context, data *T, opts ...Options) error {
 	valOptions, _, _ := c.parseOptions(validate, opts...)
 

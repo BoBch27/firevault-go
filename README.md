@@ -75,7 +75,7 @@ Defining a model is as simple as creating a struct with Firevault tags.
 type User struct {
 	Name     string   `firevault:"name,required,omitempty"`
 	Email    string   `firevault:"email,required,email,isUnique,omitempty"`
-	Password string   `firevault:"password,required,min=6,transform=hashPass,omitempty"`
+	Password string   `firevault:"password,required,min=6,transform=hash_pass,omitempty"`
 	Address  *Address `firevault:"address,omitempty"`
 	Age      int      `firevault:"age,required,min=18,omitempty"`
 }
@@ -96,9 +96,9 @@ After that, each tag is a different validation rule, and they will be parsed in 
 
 Other than the validation tags, Firevault supports the following built-in tags:
 - `omitempty` - If the field is set to it’s default value (e.g. `0` for `int`, or `""` for `string`), the field will be omitted from validation and Firestore.
-- `omitempty_create` - Works the same way as `omitempty`, but only for the `Create` method. Ignored during `UpdateById` and `Validate` methods.
-- `omitempty_update` - Works the same way as `omitempty`, but only for the `UpdateById` method. Ignored during `Create` and `Validate` methods.
-- `omitempty_validate` - Works the same way as `omitempty`, but only for the `Validate` method. Ignored during `Create` and `UpdateById` methods.
+- `omitempty_create` - Works the same way as `omitempty`, but only for the `Create` method. Ignored during `Update` and `Validate` methods.
+- `omitempty_update` - Works the same way as `omitempty`, but only for the `Update` method. Ignored during `Create` and `Validate` methods.
+- `omitempty_validate` - Works the same way as `omitempty`, but only for the `Validate` method. Ignored during `Create` and `Update` methods.
 - `-` - Ignores the field.
 
 Validations
@@ -109,15 +109,15 @@ Firevault validates fields' values based on the defined rules. There are built-i
 
 *Built-in validations:*
 - `required` - Validates whether the field's value is not the default type value (i.e. `nil` for `pointer`, `""` for `string`, `0` for `int` etc.). Fails when it is the default.
-- `required_create` - Works the same way as `required`, but only for the `Create` method. Ignored during `UpdateById` and `Validate` methods.
-- `required_update` - Works the same way as `required`, but only for the `UpdateById` method. Ignored during `Create` and `Validate` methods.
-- `required_validate` - Works the same way as `required`, but only for the `Validate` method. Ignored during `Create` and `UpdateById` methods.
+- `required_create` - Works the same way as `required`, but only for the `Create` method. Ignored during `Update` and `Validate` methods.
+- `required_update` - Works the same way as `required`, but only for the `Update` method. Ignored during `Create` and `Validate` methods.
+- `required_validate` - Works the same way as `required`, but only for the `Validate` method. Ignored during `Create` and `Update` methods.
 - `max` - Validates whether the field's value, or length, is less than or equal to the param's value. Requires a param (e.g. `max=20`). For numbers, it checks the value, for strings, maps and slices, it checks the length.
 - `min` - Validates whether the field's value, or length, is greater than or equal to the param's value. Requires a param (e.g. `min=20`). For numbers, it checks the value, for strings, maps and slices, it checks the length.
 - `email` - Validates whether the field's string value is a valid email address.
 
 *Custom validations:*
-- To define a custom validation, use the `connection`'s `RegisterValidation` method.
+- To define a custom validation, use `Connection`'s `RegisterValidation` method.
 	- *Expects*:
 		- name: A `string` defining the validation name
 		- func: A function of type `ValidationFn`. The passed in function accepts two parameters.
@@ -156,7 +156,7 @@ Transformations
 ------------
 Firevault also supports rules that transform the field's value. To use them, it's as simple as registering a transformation and adding a prefix to the tag.
 
-- To define a transformation, use the `connection`'s `RegisterTransformation` method.
+- To define a transformation, use `Connection`'s `RegisterTransformation` method.
 	- *Expects*:
 		- name: A `string` defining the validation name
 		- func: A function of type `TransformationFn`. The passed in function accepts one parameter.
@@ -197,20 +197,17 @@ type User struct {
 
 Collections
 ------------
-A Firevault `Collection` instance allows for interacting with Firestore, through various read and write methods.
+A Firevault `CollectionRef` instance allows for interacting with Firestore, through various read and write methods.
 
-To create a `Collection` instance, call the `NewCollection` method, using the struct type parameter, and passing in the `Connection` instance, as well as a collection **path**.
+To create a `CollectionRef` instance, call the `Collection` function, using the struct type parameter, and passing in the `Connection` instance, as well as a collection **path**.
 
 ```go
-collection, err := firevault.NewCollection[User](connection, "users")
-if err != nil {
-	fmt.Println(err)
-}
+collection := firevault.Collection[User](connection, "users")
 ```
 
 Methods
 ------------
-The collection instance has **7** built-in methods to support interaction with Firestore.
+The `CollectionRef` instance has **7** built-in methods to support interaction with Firestore.
 
 - `Create` - A method which validates passed in data and adds it as a document to Firestore. 
 	- *Expects*:
@@ -273,11 +270,11 @@ if err != nil {
 } 
 fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 ```
-- `UpdateById` - A method which validates passed in data and updates given Firestore document. 
+- `Update` - A method which validates passed in data and updates all Firestore documents which match provided `Query`. The method uses Firestore's `BulkWriter` under the hood, meaning the operation is not atomic.
 	- *Expects*:
 		- ctx: A context.
-		- id: A `string` with the document's ID.
-		- data: A `pointer` of a `struct` with populated fields which will be used to update the document after validation.
+		- query: A `Query` instance to filter which documents to update.
+		- data: A `pointer` of a `struct` with populated fields which will be used to update the documents after validation.
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
@@ -287,12 +284,16 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
 	- ***Important***: 
 		- If neither `omitempty`, nor `omitempty_update` tags have been used, non-specified field values in the passed in data will be set to Go's default values, thus updating all document fields. To prevent that behaviour, please use one of the two tags. 
-		- If a document with the specified ID does not exist, Firestore will create one with the specified fields, so it's worth checking whether the doc exists before using the method.
+		- If no documents match the provided `Query`, the operation will do nothing and will not return an error.
 ```go
 user := User{
 	Password: "123567",
 }
-err := collection.UpdateById(ctx, "6QVHL46WCE680ZG2Xn3X", &user)
+err := collection.Update(
+	ctx, 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"), 
+	&user,
+)
 if err != nil {
 	fmt.Println(err)
 } 
@@ -302,9 +303,9 @@ fmt.Println("Success")
 user := User{
 	Password: "123567",
 }
-err := collection.UpdateById(
+err := collection.Update(
 	ctx, 
-	"6QVHL46WCE680ZG2Xn3X", 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"), 
 	&user, 
 	NewOptions().SkipValidation(),
 )
@@ -320,9 +321,9 @@ user := User{
 		City:  "New York",
 	}
 }
-err := collection.UpdateById(
+err := collection.Update(
 	ctx, 
-	"6QVHL46WCE680ZG2Xn3X", 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"), 
 	&user, 
 	NewOptions().MergeFields("address.Line1"),
 )
@@ -331,7 +332,7 @@ if err != nil {
 } 
 fmt.Println("Success") // only the address.Line1 field will be updated
 ```
-- `Validate` - A method which validates passed in data. 
+- `Validate` - A method which validates and transforms passed in data. 
 	- *Expects*:
 		- ctx: A context.
 		- data: A `pointer` of a `struct` with populated fields which will be validated.
@@ -353,38 +354,27 @@ if err != nil {
 } 
 fmt.Println(user) // {hello@bobbydonev.com}
 ```
-- `DeleteById` - A method which deletes the Firestore document with the specified ID. 
+- `Delete` - A method which deletes all Firestore documents which match provided `Query`. The method uses Firestore's `BulkWriter` under the hood, meaning the operation is not atomic. 
 	- *Expects*:
 		- ctx: A context.
-		- id: A `string` containing the specified ID.
+		- query: A `Query` instance to filter which documents to delete.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during interaction with Firestore.
-	- If the document does not exist, it does nothing and `error` is `nil`.
+	- If no documents match the provided `Query`, the method does nothing and `error` is `nil`.
 ```go
-err := collection.DeleteById(ctx, "6QVHL46WCE680ZG2Xn3X")
+err := collection.Delete(
+	ctx, 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"),
+)
 if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println("Success")
 ```
-- `FindById` - A method which gets the Firestore document with the specified ID. 
-	- *Expects*:
-		- ctx: A context.
-		- id: A `string` containing the specified ID.
-	- *Returns*:
-		- doc: Returns the document with type `T` (the type used when initiating the collection instance).
-		- error: An `error` in case something goes wrong during interaction with Firestore.
-```go
-user, err := collection.FindById(ctx, "6QVHL46WCE680ZG2Xn3X")
-if err != nil {
-	fmt.Println(err)
-} 
-fmt.Println(user) // {{Bobby Donev hello@bobbydonev.com asdasdkjahdks 26 0xc0001d05a0}}
-```
 - `Find` - A method which gets the Firestore documents which match the provided query.
 	- *Expects*:
 		- ctx: A context.
-		- query: An instance of `Query` to filter and order documents.
+		- query: A `Query` to filter and order documents.
 	- *Returns*: 
 		- docs: A `slice` containing the results of type `Document[T]` (where `T` is the type used when initiating the collection instance). `Document[T]` has two properties.
 			- ID: A `string` which holds the document's ID.
@@ -402,6 +392,23 @@ if err != nil {
 } 
 fmt.Println(users) // []Document[User]
 fmt.Println(users[0].ID) // 6QVHL46WCE680ZG2Xn3X
+```
+- `FindOne` - A method which gets the first Firestore document which matches the provided `Query`. 
+	- *Expects*:
+		- ctx: A context.
+		- query: A `Query` to filter and order documents.
+	- *Returns*:
+		- doc: Returns the document with type `T` (the type used when initiating the collection instance).
+		- error: An `error` in case something goes wrong during interaction with Firestore.
+```go
+user, err := collection.FindOne(
+	ctx, 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"),
+)
+if err != nil {
+	fmt.Println(err)
+} 
+fmt.Println(user) // {{Bobby Donev hello@bobbydonev.com asdasdkjahdks 26 0xc0001d05a0}}
 ```
 - `Count` - A method which gets the number of Firestore documents which match the provided query.
 	- *Expects*:
@@ -433,8 +440,18 @@ query := firevault.NewQuery()
 
 Methods
 ------------
-The `Query` instance has **9** built-in methods to support filtering and ordering Firestore documents.
+The `Query` instance has **10** built-in methods to support filtering and ordering Firestore documents.
 
+- `ID` - Returns a new `Query` that that exclusively filters the set of results based on provided IDs.
+	- *Expects*:
+		- ids: A varying number of `string` values used to filter out results.
+	- *Returns*:
+		- A new `Query` instance.
+	- ***Important***:
+		- ID takes precedence over and completely overrides any previous or subsequent calls to other Query methods, including Where. To filter by ID as well as other criteria, use the Where method with the special DocumentID field, instead of calling ID.
+```go
+newQuery := query.ID("6QVHL46WCE680ZG2Xn3X")
+```
 - `Where` - Returns a new `Query` that filters the set of results. 
 	- *Expects*:
 		- path: A `string` which can be a single field or a dot-separated sequence of fields.
@@ -523,7 +540,7 @@ options := firevault.NewOptions()
 
 Methods
 ------------
-The `Options` instance has **6** built-in methods to support overriding default `Collection` method options.
+The `Options` instance has **4** built-in methods to support overriding default `CollectionRef` method options.
 
 - `SkipValidation` - Returns a new `Options` instance that allows to skip the data validation during creation, updating and validation methods. The "name" tag, "omitempty" tags and "ignore" tag will still be honoured.
 	- *Returns*:
@@ -558,7 +575,7 @@ newOptions := options.CustomID("custom-id")
 
 Custom Errors
 ------------
-During collection methods which require validation (i.e. `Create`, `UpdateById` and `Validate`), Firevault may return an error of a `FieldError` interface, which can aid in presenting custom error messages to users. All other errors are of the usual `error` type. Available methods for `FieldError` can be found in the `field_error.go` file. 
+During collection methods which require validation (i.e. `Create`, `Update` and `Validate`), Firevault may return an error of a `FieldError` interface, which can aid in presenting custom error messages to users. All other errors are of the usual `error` type. Available methods for `FieldError` can be found in the `field_error.go` file. 
 
 Here is an example of parsing returned error.
 ```go
