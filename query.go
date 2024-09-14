@@ -75,7 +75,7 @@ func (q Query) ID(ids ...string) Query {
 // Where returns a new Query that filters the set of results.
 // A Query can have multiple filters.
 //
-// The path argument can be asingle field or a dot-separated
+// The path argument can be a single field or a dot-separated
 // sequence of fields, and must not contain any of
 // the runes "˜*/[]".
 //

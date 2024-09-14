@@ -11,10 +11,10 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// A Firevault Collection allows for the fetching and
-// modifying (with validation) of documents in a
-// Firestore Collection.
-type Collection[T interface{}] struct {
+// A Firevault CollectionRef holds a reference to a
+// Firestore Collection and allows for the fetching and
+// modifying (with validation) of documents in it.
+type CollectionRef[T interface{}] struct {
 	connection *Connection
 	ref        *firestore.CollectionRef
 }
@@ -26,26 +26,28 @@ type Document[T interface{}] struct {
 	Data T
 }
 
-// Create a new Collection instance.
+// Create a new CollectionRef instance.
 //
-// A Firevault Collection allows for the fetching and
-// modifying (with validation) of documents in a
-// Firestore Collection.
-func NewCollection[T interface{}](connection *Connection, path string) (*Collection[T], error) {
-	if path == "" {
-		return nil, errors.New("firevault: collection path cannot be empty")
+// A Firevault CollectionRef holds a reference to a
+// Firestore Collection and allows for the fetching and
+// modifying (with validation) of documents in it.
+//
+// The path argument is a sequence of IDs,
+// separated by slashes.
+//
+// Returns nil if path contains an even number of IDs,
+// or any ID is empty.
+func Collection[T interface{}](connection *Connection, path string) *CollectionRef[T] {
+	collectionRef := connection.client.Collection(path)
+	if collectionRef == nil {
+		return nil
 	}
 
-	collection := &Collection[T]{
-		connection,
-		connection.client.Collection(path),
-	}
-
-	return collection, nil
+	return &CollectionRef[T]{connection, collectionRef}
 }
 
 // Validate provided data.
-func (c *Collection[T]) Validate(ctx context.Context, data *T, opts ...Options) error {
+func (c *CollectionRef[T]) Validate(ctx context.Context, data *T, opts ...Options) error {
 	valOptions, _, _ := c.parseOptions(validate, opts...)
 
 	_, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -53,7 +55,7 @@ func (c *Collection[T]) Validate(ctx context.Context, data *T, opts ...Options) 
 }
 
 // Create a Firestore document with provided data (after validation).
-func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...Options) (string, error) {
+func (c *CollectionRef[T]) Create(ctx context.Context, data *T, opts ...Options) (string, error) {
 	valOptions, id, _ := c.parseOptions(create, opts...)
 
 	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -80,7 +82,7 @@ func (c *Collection[T]) Create(ctx context.Context, data *T, opts ...Options) (s
 
 // Update all Firestore documents which match provided Query
 // (after data validation). The operation is not atomic.
-func (c *Collection[T]) Update(ctx context.Context, query Query, data *T, opts ...Options) error {
+func (c *CollectionRef[T]) Update(ctx context.Context, query Query, data *T, opts ...Options) error {
 	valOptions, _, mergeFields := c.parseOptions(update, opts...)
 
 	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -96,7 +98,7 @@ func (c *Collection[T]) Update(ctx context.Context, query Query, data *T, opts .
 
 // Delete all Firestore documents which match provided Query.
 // The operation is not atomic.
-func (c *Collection[T]) Delete(ctx context.Context, query Query) error {
+func (c *CollectionRef[T]) Delete(ctx context.Context, query Query) error {
 	return c.bulkOperation(ctx, query, func(bw *firestore.BulkWriter, docID string) error {
 		_, err := bw.Delete(c.ref.Doc(docID))
 		return err
@@ -104,7 +106,7 @@ func (c *Collection[T]) Delete(ctx context.Context, query Query) error {
 }
 
 // Find all Firestore documents which match provided Query.
-func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
+func (c *CollectionRef[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
 	if len(query.ids) > 0 {
 		return c.fetchDocsByID(ctx, query.ids)
 	}
@@ -113,7 +115,7 @@ func (c *Collection[T]) Find(ctx context.Context, query Query) ([]Document[T], e
 }
 
 // Find the first Firestore document which matches provided Query.
-func (c *Collection[T]) FindOne(ctx context.Context, query Query) (Document[T], error) {
+func (c *CollectionRef[T]) FindOne(ctx context.Context, query Query) (Document[T], error) {
 	if len(query.ids) > 0 {
 		docs, err := c.fetchDocsByID(ctx, query.ids[0:1])
 		if err != nil {
@@ -132,7 +134,7 @@ func (c *Collection[T]) FindOne(ctx context.Context, query Query) (Document[T], 
 }
 
 // Find number of Firestore documents which match provided Query.
-func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
+func (c *CollectionRef[T]) Count(ctx context.Context, query Query) (int64, error) {
 	if len(query.ids) > 0 {
 		return int64(len(query.ids)), nil
 	}
@@ -155,7 +157,7 @@ func (c *Collection[T]) Count(ctx context.Context, query Query) (int64, error) {
 }
 
 // extract passed options
-func (c *Collection[T]) parseOptions(
+func (c *CollectionRef[T]) parseOptions(
 	method methodType,
 	opts ...Options,
 ) (validationOpts, string, firestore.SetOption) {
@@ -195,7 +197,7 @@ func (c *Collection[T]) parseOptions(
 }
 
 // build a new firestore query
-func (c *Collection[T]) buildQuery(query Query) firestore.Query {
+func (c *CollectionRef[T]) buildQuery(query Query) firestore.Query {
 	newQuery := c.ref.Query
 
 	for _, filter := range query.filters {
@@ -238,7 +240,7 @@ func (c *Collection[T]) buildQuery(query Query) firestore.Query {
 }
 
 // perform a bulk operation
-func (c *Collection[T]) bulkOperation(
+func (c *CollectionRef[T]) bulkOperation(
 	ctx context.Context,
 	query Query,
 	operation func(*firestore.BulkWriter, string) error,
@@ -278,7 +280,7 @@ func (c *Collection[T]) bulkOperation(
 }
 
 // fetch documents based on provided ids
-func (c *Collection[T]) fetchDocsByID(ctx context.Context, ids []string) ([]Document[T], error) {
+func (c *CollectionRef[T]) fetchDocsByID(ctx context.Context, ids []string) ([]Document[T], error) {
 	const batchSize = 100
 	var docRefs []*firestore.DocumentRef
 	var docs []Document[T]
@@ -315,7 +317,7 @@ func (c *Collection[T]) fetchDocsByID(ctx context.Context, ids []string) ([]Docu
 }
 
 // fetch documents based on provided Query
-func (c *Collection[T]) fetchDocsByQuery(ctx context.Context, query Query) ([]Document[T], error) {
+func (c *CollectionRef[T]) fetchDocsByQuery(ctx context.Context, query Query) ([]Document[T], error) {
 	builtQuery := c.buildQuery(query)
 	iter := builtQuery.Documents(ctx)
 
