@@ -1,11 +1,13 @@
 package firevault
 
 import (
+	"context"
+
 	"cloud.google.com/go/firestore"
 )
 
 // A Firevault Connection provides access to
-// Firevault services
+// Firevault services.
 type Connection struct {
 	client    *firestore.Client
 	validator *validator
@@ -14,10 +16,16 @@ type Connection struct {
 // Create a new Connection instance.
 //
 // A Firevault Connection provides access to
-// Firevault services
-func Connect(client *firestore.Client) *Connection {
+// Firevault services.
+func Connect(ctx context.Context, projectID string) (*Connection, error) {
 	val := newValidator()
-	return &Connection{client, val}
+
+	client, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Connection{client, val}, nil
 }
 
 // Register a new validation rule.
