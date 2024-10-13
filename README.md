@@ -19,52 +19,29 @@ import "github.com/bobch27/firevault-go/v2"
 
 Connection
 ------------
-You can connect to Firevault using the [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup) and the `Connect` method.
+You can connect to Firevault using the `Connect` method, providing a project ID.
 
 ```go
 import (
 	"log"
 
-	firebase "firebase.google.com/go"
-	"github.com/bobch27/firevault-go/v2"
-)
-
-ctx := context.Background()
-app, err := firebase.NewApp(ctx, nil)
-if err != nil {
-  log.Fatalln("Firebase initialisation failed:", err)
-}
-
-client, err := app.Firestore(ctx)
-if err != nil {
-  log.Fatalln("Firestore initialisation failed:", err)
-}
-
-defer client.Close()
-
-connection := firevault.Connect(client)
-```
-
-```go
-import (
-	"log"
-
-	"cloud.google.com/go/firestore"
 	"github.com/bobch27/firevault-go/v2"
 )
 
 // Sets your Google Cloud Platform project ID.
-projectId := "YOUR_PROJECT_ID"
+projectID := "YOUR_PROJECT_ID"
 ctx := context.Background()
 
-client, err := firestore.NewClient(ctx, projectId)
+connection, err := firevault.Connect(ctx, projectID)
 if err != nil {
-  log.Fatalln("Firestore initialisation failed:", err)
+  log.Fatalln("Firevault initialisation failed:", err)
 }
+```
 
-defer client.Close()
+To close the connection, when it's no longer needed, you can call the Close method. It need not be called at program exit.
 
-connection := firevault.Connect(client)
+```go
+defer connection.Close()
 ```
 
 Models
