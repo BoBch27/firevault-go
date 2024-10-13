@@ -28,6 +28,16 @@ func Connect(ctx context.Context, projectID string) (*Connection, error) {
 	return &Connection{client, val}, nil
 }
 
+// Close closes the connection to Firestore.
+//
+// Should be invoked when the connection is
+// no longer required.
+//
+// Close need not be called at program exit.
+func (c *Connection) Close() error {
+	return c.client.Close()
+}
+
 // Register a new validation rule.
 func (c *Connection) RegisterValidation(name string, validation ValidationFn) error {
 	return c.validator.registerValidation(name, validation)
