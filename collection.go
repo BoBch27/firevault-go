@@ -38,6 +38,10 @@ type Document[T interface{}] struct {
 // Returns nil if path contains an even number of IDs,
 // or any ID is empty.
 func Collection[T interface{}](connection *Connection, path string) *CollectionRef[T] {
+	if connection == nil || connection.client == nil {
+		return nil
+	}
+
 	collectionRef := connection.client.Collection(path)
 	if collectionRef == nil {
 		return nil
@@ -48,6 +52,10 @@ func Collection[T interface{}](connection *Connection, path string) *CollectionR
 
 // Validate and transform provided data.
 func (c *CollectionRef[T]) Validate(ctx context.Context, data *T, opts ...Options) error {
+	if c == nil {
+		return errors.New("firevault: nil CollectionRef")
+	}
+
 	valOptions, _, _ := c.parseOptions(validate, opts...)
 
 	_, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -56,6 +64,10 @@ func (c *CollectionRef[T]) Validate(ctx context.Context, data *T, opts ...Option
 
 // Create a Firestore document with provided data (after validation).
 func (c *CollectionRef[T]) Create(ctx context.Context, data *T, opts ...Options) (string, error) {
+	if c == nil {
+		return "", errors.New("firevault: nil CollectionRef")
+	}
+
 	valOptions, id, _ := c.parseOptions(create, opts...)
 
 	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -83,6 +95,10 @@ func (c *CollectionRef[T]) Create(ctx context.Context, data *T, opts ...Options)
 // Update all Firestore documents which match provided Query
 // (after data validation). The operation is not atomic.
 func (c *CollectionRef[T]) Update(ctx context.Context, query Query, data *T, opts ...Options) error {
+	if c == nil {
+		return errors.New("firevault: nil CollectionRef")
+	}
+
 	valOptions, _, mergeFields := c.parseOptions(update, opts...)
 
 	dataMap, err := c.connection.validator.validate(ctx, data, valOptions)
@@ -99,6 +115,10 @@ func (c *CollectionRef[T]) Update(ctx context.Context, query Query, data *T, opt
 // Delete all Firestore documents which match provided Query.
 // The operation is not atomic.
 func (c *CollectionRef[T]) Delete(ctx context.Context, query Query) error {
+	if c == nil {
+		return errors.New("firevault: nil CollectionRef")
+	}
+
 	return c.bulkOperation(ctx, query, func(bw *firestore.BulkWriter, docID string) error {
 		_, err := bw.Delete(c.ref.Doc(docID))
 		return err
@@ -107,6 +127,10 @@ func (c *CollectionRef[T]) Delete(ctx context.Context, query Query) error {
 
 // Find all Firestore documents which match provided Query.
 func (c *CollectionRef[T]) Find(ctx context.Context, query Query) ([]Document[T], error) {
+	if c == nil {
+		return nil, errors.New("firevault: nil CollectionRef")
+	}
+
 	if len(query.ids) > 0 {
 		return c.fetchDocsByID(ctx, query.ids)
 	}
@@ -116,6 +140,10 @@ func (c *CollectionRef[T]) Find(ctx context.Context, query Query) ([]Document[T]
 
 // Find the first Firestore document which matches provided Query.
 func (c *CollectionRef[T]) FindOne(ctx context.Context, query Query) (Document[T], error) {
+	if c == nil {
+		return Document[T]{}, errors.New("firevault: nil CollectionRef")
+	}
+
 	if len(query.ids) > 0 {
 		docs, err := c.fetchDocsByID(ctx, query.ids[0:1])
 		if err != nil {
@@ -135,6 +163,10 @@ func (c *CollectionRef[T]) FindOne(ctx context.Context, query Query) (Document[T
 
 // Find number of Firestore documents which match provided Query.
 func (c *CollectionRef[T]) Count(ctx context.Context, query Query) (int64, error) {
+	if c == nil {
+		return 0, errors.New("firevault: nil CollectionRef")
+	}
+
 	if len(query.ids) > 0 {
 		return int64(len(query.ids)), nil
 	}

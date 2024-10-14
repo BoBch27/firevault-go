@@ -37,6 +37,10 @@ func newValidator() *validator {
 
 // register a validation
 func (v *validator) registerValidation(name string, validation ValidationFn) error {
+	if v == nil {
+		return errors.New("firevault: nil validator")
+	}
+
 	if len(name) == 0 {
 		return errors.New("firevault: validation function name cannot be empty")
 	}
@@ -51,6 +55,10 @@ func (v *validator) registerValidation(name string, validation ValidationFn) err
 
 // register a transformation
 func (v *validator) registerTransformation(name string, transformation TransformationFn) error {
+	if v == nil {
+		return errors.New("firevault: nil validator")
+	}
+
 	if len(name) == 0 {
 		return errors.New("firevault: transformation function name cannot be empty")
 	}
@@ -75,6 +83,10 @@ func (v *validator) validate(
 	data interface{},
 	opts validationOpts,
 ) (map[string]interface{}, error) {
+	if v == nil {
+		return nil, errors.New("firevault: nil validator")
+	}
+
 	rs := reflectedStruct{reflect.TypeOf(data), reflect.ValueOf(data)}
 
 	if rs.values.Kind() != reflect.Pointer && rs.values.Kind() != reflect.Ptr {
