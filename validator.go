@@ -396,9 +396,7 @@ func (v *validator) parseTag(tag string) []string {
 
 	for _, rule := range rules {
 		trimmedRule := strings.TrimSpace(rule)
-		if trimmedRule != "" {
-			validatedRules = append(validatedRules, trimmedRule)
-		}
+		validatedRules = append(validatedRules, trimmedRule)
 	}
 
 	return validatedRules
