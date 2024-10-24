@@ -32,17 +32,22 @@ type Options struct {
 	//
 	// If left empty, those tags will be honoured for all fields.
 	allowEmptyFields []string
-	// Specify which fields (using "dot notation") should ignore
-	// the "omitempty" and "omitemptyupdate" tags.
+	// Specify which field paths (using dot-separated strings)
+	// to be overwritten. Other fields on the existing document
+	// will be untouched.
 	//
-	// It is an error if a provided field path does not refer to a
-	// value in the data passed.
+	// If a provided field path does not refer to a value in the
+	// data passed, that field will be deleted from the document.
 	//
 	// If left empty, all the field paths given in the data argument
-	// will be overwritten. Only used for updating method.
+	// will be overwritten.
+	//
+	// Only used for updating method.
 	mergeFields []string
 	// Specify custom doc ID. If left empty, Firestore will
-	// automatically create one. Only used for creation method.
+	// automatically create one.
+	//
+	// Only used for creation method.
 	id string
 }
 
@@ -80,8 +85,8 @@ func (o Options) AllowEmptyFields(fields ...string) Options {
 // to be overwritten. Other fields on the existing document
 // will be untouched.
 //
-// It is an error if a provided field path does not refer to a
-// value in the data passed.
+// If a provided field path does not refer to a value in the
+// data passed, that field will be deleted from the document.
 //
 // Only used for updating method.
 func (o Options) MergeFields(fields ...string) Options {
