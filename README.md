@@ -1,5 +1,5 @@
 # Firevault
-Firevault is a [Firestore](https://cloud.google.com/firestore/) object modelling library to make life easier for Go devs.
+Firevault is a [Firestore](https://cloud.google.com/firestore/) ODM for Go, providing robust data modelling and document handling.
 
 Installation
 ------------
@@ -255,7 +255,7 @@ fmt.Println(id) // "6QVHL46WCE680ZG2Xn3X"
 		- options *(optional)*: An instance of `Options` with the following properties having an
 		effect.
 			- SkipValidation: A `bool` which when `true`, means all validation tags will be ingored (the `name` and `omitempty` tags will be acknowledged). Default is `false`.
-			- MergeFields: An optional `string` `slice`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten.
+			- MergeFields: An optional `string` `slice`, which is used to specify which fields to be overwritten. Other fields on the document will be untouched. If left empty, all the fields given in the data argument will be overwritten. If a field is specified, but is not present in the data passed, the field will be deleted from the document (using `firestore.Delete`).
 			- AllowEmptyFields: An optional `string` `slice`, which is used to specify which fields can ignore the `omitempty` and `omitempty_update` tags. This can be useful when a field must be set to its zero value only on certain updates. If left empty, all fields will honour the two tags.
 	- *Returns*:
 		- error: An `error` in case something goes wrong during validation or interaction with Firestore.
@@ -308,6 +308,24 @@ if err != nil {
 	fmt.Println(err)
 } 
 fmt.Println("Success") // only the address.Line1 field will be updated
+```
+```go
+user := User{
+	Address:  &Address{
+		City:  "New York",
+	}
+}
+err := collection.Update(
+	ctx, 
+	NewQuery().ID("6QVHL46WCE680ZG2Xn3X"), 
+	&user, 
+	NewOptions().MergeFields("address.Line1"),
+)
+if err != nil {
+	fmt.Println(err)
+} 
+fmt.Println("Success") 
+// address.Line1 field will be deleted from document, since it's not present in data
 ```
 - `Validate` - A method which validates and transforms passed in data. 
 	- *Expects*:
@@ -533,7 +551,7 @@ newOptions := options.SkipValidation()
 ```go
 newOptions := options.AllowEmptyFields("age")
 ```
-- `MergeFields` - Returns a new `Options` instance that allows to specify which field paths to be overwritten. Other fields on the existing document will be untouched. It is an error if a provided field path does not refer to a value in the data passed. Only used for updating method.
+- `MergeFields` - Returns a new `Options` instance that allows to specify which field paths to be overwritten. Other fields on the existing document will be untouched. If a provided field path does not refer to a value in the data passed, that field will be deleted from the document. Only used for updating method.
 	- *Expects*:
 		- path: A varying number of `string` values (using dot separation) used to select field paths.
 	- *Returns*:
