@@ -168,6 +168,7 @@ func (v *validator) validateFields(
 				fieldName,
 				fieldType.Name,
 				rules,
+				opts.method,
 			)
 			if err != nil {
 				return nil, err
@@ -250,10 +251,13 @@ func (v *validator) applyRules(
 	fieldName string,
 	structFieldName string,
 	rules []string,
+	method methodType,
 ) (reflect.Value, error) {
 	for _, rule := range rules {
 		// skip processing if the field is empty and it's not a required rule
-		if !hasValue(fieldValue) && !strings.HasPrefix(rule, "required") {
+		requiredMethodTag := string("required" + method)
+		isRequiredRule := rule == "required" || rule == requiredMethodTag
+		if !hasValue(fieldValue) && !isRequiredRule {
 			continue
 		}
 
